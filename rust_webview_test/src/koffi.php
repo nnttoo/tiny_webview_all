@@ -1,16 +1,34 @@
 <?php
- 
+
+function createCBuffer($string) {
+    $len = strlen($string); 
+    $buffer = FFI::new("char[" . ($len + 1) . "]", true); 
+    FFI::memcpy($buffer, $string, $len); 
+    return  $buffer;
+}
+
 $ffi = FFI::cdef("
-    void hello_world();
+   typedef struct {
+        const char* url;
+        void (*mycb)(void);
+    } WebArg;
+
+    void hello_world(WebArg* webconfig);
     int tambah(int a, int b);
-", "../rust_webview_node/target/release/webview_node.dll"); // Sesuaikan path ke file DLL kamu
+", 
+"../rust_webview_node/target/release/webview_node.dll"); // Sesuaikan path ke file DLL kamu
 
-// 2. Panggil fungsi hello_world
-// Ini akan muncul di terminal/output server kamu (stdout)
-$ffi->hello_world();
+/// 2. Buat Callback di PHP
+// Ini adalah fungsi PHP yang akan dipanggil oleh Rust
+$callback = function() {
+    echo "Callback dari PHP berhasil dijalankan!\n";
+}; 
+$arg =  $ffi->new("WebArg"); 
+ 
+$urlbuffer = createCBuffer("https://google.com");
+$arg->url = FFI::cast("char*", $urlbuffer);
+$arg->mycb = $callback;  
 
-// 3. Panggil fungsi tambah
-$hasil = $ffi->tambah(10, 20);
-
-echo "Hasil dari Rust: " . $hasil; // Output: Hasil dari Rust: 30
+$ffi->hello_world(FFI::addr($arg));  
+echo "\n\nDiprintDIPHP : " . $arg->url . "\n\n";
 ?>

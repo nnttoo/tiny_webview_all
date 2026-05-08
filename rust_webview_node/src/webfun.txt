@@ -1,0 +1,19 @@
+use std::os::raw::c_char;  
+use std::ffi::CStr;
+
+
+pub fn open_web(myconfig: &WebArg) {
+    println!("Hallo dari Rust mod fnunnnn!");
+ 
+    let url_str = if myconfig.url.is_null() {
+        "URL Kosong"
+    } else {
+        unsafe {
+            // Kita harus menggunakan unsafe karena dereferensi pointer mentah
+            CStr::from_ptr(myconfig.url).to_str().unwrap_or("Invalid UTF-8")
+        }
+    };
+
+    println!("Menjalankan: {}", url_str); 
+    (myconfig.mycb)();
+}
