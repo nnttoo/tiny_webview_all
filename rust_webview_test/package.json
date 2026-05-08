@@ -1,0 +1,13 @@
+{
+  "name": "winwebviewphp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "buildrust" : "cd ../rust_webview_node && npm run build",
+    "run": "php -c php-local.ini src/koffi.php",
+    "brun" : "npm run  buildrust && npm run run"
+  },
+  "author": "",
+  "license": "ISC"
+}

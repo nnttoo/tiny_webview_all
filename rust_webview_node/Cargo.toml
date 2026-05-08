@@ -1,0 +1,11 @@
+[package]
+name = "webview_node"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+tao = "0.35.0"
+wry = "0.55.0"
