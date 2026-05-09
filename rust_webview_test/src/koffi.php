@@ -2,33 +2,50 @@
 
 function createCBuffer($string) {
     $len = strlen($string); 
-    $buffer = FFI::new("char[" . ($len + 1) . "]", true); 
+    $buffer = FFI::new("char[" . ($len + 1) . "]", false); 
     FFI::memcpy($buffer, $string, $len); 
-    return  $buffer;
+    return   $buffer;
 }
 
 $ffi = FFI::cdef("
    typedef struct {
-        const char* url;
-        void (*mycb)(void);
+        char* url;
+        char* wclassname;
+        char* title;
+        char* custom_protocol;
+
+        void (*on_custom_protocol)(const char*);
+
+        int width;
+        int height;
+
+        bool is_kiosk;
+        bool is_maximize;
+        bool is_debug;
+
     } WebArg;
 
-    void hello_world(WebArg* webconfig);
-    int tambah(int a, int b);
+    void openWebView(WebArg* webconfig); 
 ", 
 "../rust_webview_node/target/release/webview_node.dll"); // Sesuaikan path ke file DLL kamu
 
 /// 2. Buat Callback di PHP
 // Ini adalah fungsi PHP yang akan dipanggil oleh Rust
-$callback = function() {
+$callback = function($data) { 
+    echo "ini contoh data : `" . $data;
     echo "Callback dari PHP berhasil dijalankan!\n";
 }; 
 $arg =  $ffi->new("WebArg"); 
- 
-$urlbuffer = createCBuffer("https://google.com");
-$arg->url = FFI::cast("char*", $urlbuffer);
-$arg->mycb = $callback;  
+  
+$arg->url =  createCBuffer("https://google.com");
+$arg->wclassname = createCBuffer("iniclassnamenyadeh");
+$arg->width = 600;
+$arg->height = 600;
+$arg->is_maximize = false;
+$arg->title =  createCBuffer("ini judul nyo");
+$arg->is_kiosk = false;
+$arg->on_custom_protocol = $callback;  
 
-$ffi->hello_world(FFI::addr($arg));  
-echo "\n\nDiprintDIPHP : " . $arg->url . "\n\n";
+$ffi->openWebView(FFI::addr($arg));  
+echo "\n\nDiprintDIPHP : " . FFI::string($arg->url) . "\n\n";
 ?>
