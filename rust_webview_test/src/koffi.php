@@ -97,11 +97,16 @@ $arg->wclassname = createCBuffer("iniclassnamenyadeh");
 $arg->width = 600;
 $arg->height = 600;
 $arg->is_maximize = false;
-$arg->title =  createCBuffer("ini judul nyo");
+$arg->title =  createCBuffer("ini judul nyo PHP");
 $arg->is_kiosk = false;
 $arg->is_debug = true;
 $arg->on_custom_protocol = $callback;  
 
 $ffi->openWebView(FFI::addr($arg));  
 echo "\n\nDiprintDIPHP : " . FFI::string($arg->url) . "\n\n";
+
+while (true) {
+    sleep(1);
+    echo "waiting\n";
+}
 ?>

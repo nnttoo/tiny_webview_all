@@ -1,16 +1,17 @@
+use crate::CustomEvent;
 use crate::webconfig::{
     self, ResourceRequest, ResourceResponse, SendResponse, get_string_from_cpointer,
     string_tocstring,
-};
-use std::{ffi::CString, thread};
+}; 
 
-use tao::event_loop::EventLoopBuilder;
+use tao::event_loop::{EventLoopBuilder, EventLoopWindowTarget};
 use tao::platform::windows::EventLoopBuilderExtWindows;
 use tao::{event_loop::ControlFlow, window::WindowBuilder};
 use wry::{PermissionResponse, WebViewBuilder, WebViewBuilderExtWindows};
-pub fn open_webview(webviewcon: &webconfig::WebArg) {
-    let event_loop = EventLoopBuilder::new().with_any_thread(true).build();
-
+pub fn open_webview(
+    webviewcon: &webconfig::WebArg,
+    even_loop  :   &EventLoopWindowTarget<CustomEvent>
+)  { 
     unsafe {
         let mut data_path = std::env::temp_dir();
         data_path.push("webview_lib_data");
@@ -24,6 +25,7 @@ pub fn open_webview(webviewcon: &webconfig::WebArg) {
 
     let mut _builder = WindowBuilder::new()
         .with_title(title.as_str())
+        
         .with_inner_size(tao::dpi::LogicalSize::new(
             webviewcon.width,
             webviewcon.height,
@@ -37,12 +39,13 @@ pub fn open_webview(webviewcon: &webconfig::WebArg) {
         _builder = _builder.with_maximized(true);
     }
 
-    let _mywindow = _builder.build(&event_loop).unwrap();
+    let _mywindow = _builder.build(even_loop).unwrap();
 
     let on_custom_protocol = webviewcon.on_custom_protocol;
     let mut webview = WebViewBuilder::new()
         .with_devtools(webviewcon.is_debug)
         .with_autoplay(true)
+        .with_https_scheme(true)
         .with_permission_handler(|kind| {
             println!("Otomatis mengizinkan: {:?}", kind);
             PermissionResponse::Allow
@@ -97,29 +100,7 @@ pub fn open_webview(webviewcon: &webconfig::WebArg) {
             println!("call jscallbak Done");
         })
         .with_url(url)
-        .build(&_mywindow);
-
-    event_loop.run(move |event, _, control_flow| {
-        // Gunakan Poll atau Wait sesuai kebutuhan
-        *control_flow = ControlFlow::Wait;
-
-        let _ = &webview; // Menjaga ownership
-
-        match event {
-            tao::event::Event::WindowEvent {
-                event: tao::event::WindowEvent::CloseRequested,
-                ..
-            } => {
-                unsafe {
-                    let ptr = &mut webview as *mut _;
-                    std::ptr::drop_in_place(ptr);
-                }
-                *control_flow = ControlFlow::Exit;
-                std::process::exit(0);
-            }
-            _ => {
-                let _ = &webview;
-            }
-        }
-    });
+        .build(&_mywindow); 
+    Box::leak(Box::new(_mywindow));
+    Box::leak(Box::new(webview));
 }

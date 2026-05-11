@@ -54,8 +54,7 @@ const WebArg = koffi.struct('WebArg', {
     is_debug: 'bool'
 });
 
-const openWebView = lib.func("openWebView", "void", [koffi.pointer(WebArg) ]);
-const createEventLoop = lib.func("createEventLoop", "void *", []);
+const openWebView = lib.func("openWebView", "void", [koffi.pointer(WebArg)]);
 
 let sleep = (n: number) => {
     return new Promise((r, x) => {
@@ -64,8 +63,6 @@ let sleep = (n: number) => {
         }, n);
     })
 }
-
-createEventLoop();
 
 
 type MyCb = (res: any, dptr: any) => void;
@@ -120,16 +117,14 @@ async function test() {
 
 }
 
-openWebView.async(arg, () => {
+openWebView.async(arg,()=>{
     console.log("webclosed");
 });
- 
- 
 
 (async () => {
     while (true) {
         await sleep(1000);
-        console.log("waiting");
+        console.log("waiting"); 
     }
 })();
 
