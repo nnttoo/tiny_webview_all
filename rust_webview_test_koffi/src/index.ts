@@ -19,15 +19,25 @@ function createCBuffer(str: string): Buffer {
 
 // 2. Load Library
 const lib = koffi.load("../rust_webview_node/target/release/webview_node.dll");
-const ResourceRequest = koffi.opaque('ResourceRequest');
-const ResourceResponse = koffi.opaque('ResourceResponse');
+const ResourceRequest = koffi.struct('ResourceRequest',{ 
+    uri: 'char *', 
+    method: 'char *', 
+    body: 'uint8_t *', 
+    body_len: 'size_t',
+});
+const ResourceResponse = koffi.struct('ResourceResponse',{ 
+    body: 'uint8_t *', 
+    body_len: 'size_t', 
+    content_type: 'char *', 
+    status: 'int',
+});
 // --- 2. Definisikan Prototype untuk SendResponse ---
 // Di Rust: pub type SendResponse = extern "C" fn(response: *const ResourceResponse, *const c_void);
 const SendResponseProto = koffi.proto('void SendResponse(const ResourceResponse *response, const void *userData)');
 // --- 3. Definisikan Prototype untuk Callback Utama ---
 // Di Rust: on_custom_protocol: extern "C" fn(*const ResourceRequest, SendResponse, *const c_void)
 // PENTING: SendResponse di sini adalah sebuah CALLBACK POINTER
-const OnCustomProtocolProto = koffi.proto('void OnCustomProtocol(const ResourceRequest *req, void *cb, const void *data)')
+const OnCustomProtocolProto = koffi.proto('void OnCustomProtocol(const ResourceRequest *req, SendResponse *cb, const void *data)')
 const OnCustomProtocolPtr = koffi.pointer('OnCustomProtocolPtr', OnCustomProtocolProto );
 // --- 4. Definisikan Struct WebArg ---
 const WebArg = koffi.struct('WebArg', {

@@ -1,8 +1,9 @@
 mod webconfig;
 mod webview_open;
 
-use crate::webconfig::{ResourceRequest, SendResponse, WebArg};
+use std::os::raw::c_void;
 
+use crate::webconfig::{ResourceRequest, ResourceResponse, SendResponse, WebArg};
 
 type MyCallback = extern "C" fn(progress: i32);
 #[unsafe(no_mangle)]
@@ -29,16 +30,14 @@ pub extern "C" fn openWebView(webconfig_mut: *mut WebArg) {
             body: std::ptr::null(),
             body_len: 0,
         };
-        let null_callback: SendResponse = std::mem::transmute(std::ptr::null::<std::ffi::c_void>());
+        extern "C" fn my_callback(response: *const ResourceResponse, userdata: *const c_void) {
+            println!("dipanggil dari rust");
+        }
 
         println!("Rust: Mencoba memanggil callback untuk testing...");
-
+        let cb: SendResponse = my_callback;
         // 3. Panggil callback
-        (webconfig.on_custom_protocol)(
-            &test_req as *const ResourceRequest,
-            null_callback,
-            std::ptr::null(),
-        );
+        (webconfig.on_custom_protocol)(&test_req as *const ResourceRequest, cb, std::ptr::null());
     }
 
     //webview_open::open_webview(&webconfig);
