@@ -117,6 +117,7 @@ async function test() {
 
 }
 
+openWebView(arg);
 
 (async () => {
     while (true) {
@@ -125,5 +126,3 @@ async function test() {
     }
 })();
 
-
-openWebView(arg);

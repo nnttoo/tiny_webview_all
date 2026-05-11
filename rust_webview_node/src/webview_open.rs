@@ -6,15 +6,10 @@ use std::{ffi::CString, thread};
 
 use tao::event_loop::EventLoopBuilder;
 use tao::platform::windows::EventLoopBuilderExtWindows;
-use tao::{
-    event_loop::{ControlFlow},
-    window::WindowBuilder,
-};
+use tao::{event_loop::ControlFlow, window::WindowBuilder};
 use wry::{PermissionResponse, WebViewBuilder, WebViewBuilderExtWindows};
 pub fn open_webview(webviewcon: &webconfig::WebArg) {
-    let event_loop = EventLoopBuilder::new()
-    .with_any_thread(true)
-    .build();
+    let event_loop = EventLoopBuilder::new().with_any_thread(true).build();
 
     unsafe {
         let mut data_path = std::env::temp_dir();
@@ -45,7 +40,7 @@ pub fn open_webview(webviewcon: &webconfig::WebArg) {
     let _mywindow = _builder.build(&event_loop).unwrap();
 
     let on_custom_protocol = webviewcon.on_custom_protocol;
-    let _webview = WebViewBuilder::new()
+    let mut webview = WebViewBuilder::new()
         .with_devtools(webviewcon.is_debug)
         .with_autoplay(true)
         .with_permission_handler(|kind| {
@@ -54,7 +49,7 @@ pub fn open_webview(webviewcon: &webconfig::WebArg) {
         })
         .with_asynchronous_custom_protocol(custom_protocol, move |_id, _request, responder| {
             let req_method = _request.method().to_string();
-            let req_method_cstr =  string_tocstring(req_method);
+            let req_method_cstr = string_tocstring(req_method);
             let uri = _request.uri().to_string();
             let uriptr = string_tocstring(uri);
             let body_bytes: &[u8] = _request.body();
@@ -98,21 +93,33 @@ pub fn open_webview(webviewcon: &webconfig::WebArg) {
 
             println!("call jscallbak");
             on_custom_protocol(&res_req, myres_callback, responder_ptr as *const _);
-            
+
             println!("call jscallbak Done");
         })
         .with_url(url)
         .build(&_mywindow);
 
     event_loop.run(move |event, _, control_flow| {
+        // Gunakan Poll atau Wait sesuai kebutuhan
         *control_flow = ControlFlow::Wait;
+
+        let _ = &webview; // Menjaga ownership
 
         match event {
             tao::event::Event::WindowEvent {
                 event: tao::event::WindowEvent::CloseRequested,
                 ..
-            } => *control_flow = ControlFlow::Exit,
-            _ => (),
+            } => {
+                unsafe {
+                    let ptr = &mut webview as *mut _;
+                    std::ptr::drop_in_place(ptr);
+                }
+                *control_flow = ControlFlow::Exit;
+                std::process::exit(0);
+            }
+            _ => {
+                let _ = &webview;
+            }
         }
     });
 }
