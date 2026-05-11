@@ -1,14 +1,19 @@
 mod webconfig;
 mod webview_open;
- 
 
-use std::{sync::{OnceLock, mpsc}, thread};
+use std::{
+    collections::HashMap,
+    sync::{Mutex, OnceLock, mpsc},
+    thread,
+};
 
 use tao::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy, EventLoopWindowTarget},
     platform::windows::EventLoopBuilderExtWindows,
+    window::{Window, WindowId},
 };
+use wry::WebView;
 
 use crate::webconfig::{
     ResourceRequest, ResourceResponse, SendResponse, WebArg, get_string_from_cpointer,
@@ -28,8 +33,36 @@ type BoxedCommand = Box<dyn FnOnce(&EventLoopWindowTarget<CustomEvent>) + Send +
 enum CustomEvent {
     Execute(BoxedCommand),
 }
+// 1. Buat Wrapper
+struct UnsafeWrapper<T>(pub T);
 
+// 2. Paksa Rust percaya kalau ini aman (karena kita pakai Mutex nanti)
+unsafe impl<T> Send for UnsafeWrapper<T> {}
+unsafe impl<T> Sync for UnsafeWrapper<T> {}
 static PROXY: OnceLock<EventLoopProxy<CustomEvent>> = OnceLock::new();
+static WEBVIEWS: OnceLock<Mutex<HashMap<WindowId, UnsafeWrapper<(Window, WebView)>>>> =
+    OnceLock::new();
+
+fn close_window(window_id: WindowId) {
+    // Langsung akses WEBVIEWS, inisialisasi jika belum, lalu lock
+    let mut map = WEBVIEWS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap();
+
+    // Langsung hapus
+    if map.remove(&window_id).is_some() {
+        println!("Window {:?} ditutup.", window_id);
+    }
+}
+fn save_window(id: WindowId, window: Window, webview: WebView) { 
+    if let Ok(mut map) = WEBVIEWS.get_or_init(|| Mutex::new(HashMap::new())).lock() { 
+        map.insert(id, UnsafeWrapper((window, webview)));
+        
+        println!("Window {:?} sukses disimpan di brankas.", id);
+    }
+}
+
 
 #[unsafe(no_mangle)]
 pub extern "C" fn createEventLoop() {
@@ -51,10 +84,10 @@ pub extern "C" fn createEventLoop() {
 
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
+                window_id,
                 ..
             } => {
-                // Jika mau aplikasi mati total saat satu window ditutup:
-                *control_flow = ControlFlow::Exit;
+                close_window(window_id);
             }
 
             _ => (),
@@ -84,7 +117,8 @@ pub extern "C" fn openWebView(webconfig_mut: *mut WebArg) {
         unsafe {
             let ptr = config_addr as *mut WebArg;
             let config: &WebArg = &*ptr;
-            webview_open::open_webview(config, elwt);
+            let (w,bw,w_id)= webview_open::open_webview(config, elwt); 
+            save_window(w_id,w,bw);
         }
     });
 

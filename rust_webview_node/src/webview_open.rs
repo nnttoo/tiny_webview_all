@@ -6,12 +6,14 @@ use crate::webconfig::{
 
 use tao::event_loop::{EventLoopBuilder, EventLoopWindowTarget};
 use tao::platform::windows::EventLoopBuilderExtWindows;
+use tao::window::Window;
+use tao::window::WindowId;
 use tao::{event_loop::ControlFlow, window::WindowBuilder};
-use wry::{PermissionResponse, WebViewBuilder, WebViewBuilderExtWindows};
+use wry::{PermissionResponse, WebView, WebViewBuilder, WebViewBuilderExtWindows};
 pub fn open_webview(
     webviewcon: &webconfig::WebArg,
     even_loop  :   &EventLoopWindowTarget<CustomEvent>
-)  { 
+) ->(Window,WebView, WindowId) { 
     unsafe {
         let mut data_path = std::env::temp_dir();
         data_path.push("webview_lib_data");
@@ -40,6 +42,8 @@ pub fn open_webview(
     }
 
     let _mywindow = _builder.build(even_loop).unwrap();
+
+    let wid = _mywindow.id();
 
     let on_custom_protocol = webviewcon.on_custom_protocol;
     let mut webview = WebViewBuilder::new()
@@ -101,6 +105,9 @@ pub fn open_webview(
         })
         .with_url(url)
         .build(&_mywindow); 
-    Box::leak(Box::new(_mywindow));
-    Box::leak(Box::new(webview));
+    (
+        _mywindow,
+        webview.unwrap(),
+        wid
+    ) 
 }
