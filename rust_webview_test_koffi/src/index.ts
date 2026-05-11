@@ -19,16 +19,16 @@ function createCBuffer(str: string): Buffer {
 
 // 2. Load Library
 const lib = koffi.load("../rust_webview_node/target/release/webview_node.dll");
-const ResourceRequest = koffi.struct('ResourceRequest',{ 
-    uri: 'char *', 
-    method: 'char *', 
-    body: 'uint8_t *', 
+const ResourceRequest = koffi.struct('ResourceRequest', {
+    uri: 'char *',
+    method: 'char *',
+    body: 'uint8_t *',
     body_len: 'size_t',
 });
-const ResourceResponse = koffi.struct('ResourceResponse',{ 
-    body: 'uint8_t *', 
-    body_len: 'size_t', 
-    content_type: 'char *', 
+const ResourceResponse = koffi.struct('ResourceResponse', {
+    body: 'uint8_t *',
+    body_len: 'size_t',
+    content_type: 'char *',
     status: 'int',
 });
 // --- 2. Definisikan Prototype untuk SendResponse ---
@@ -38,7 +38,7 @@ const SendResponseProto = koffi.proto('void SendResponse(const ResourceResponse 
 // Di Rust: on_custom_protocol: extern "C" fn(*const ResourceRequest, SendResponse, *const c_void)
 // PENTING: SendResponse di sini adalah sebuah CALLBACK POINTER
 const OnCustomProtocolProto = koffi.proto('void OnCustomProtocol(const ResourceRequest *req, SendResponse *cb, const void *data)')
-const OnCustomProtocolPtr = koffi.pointer('OnCustomProtocolPtr', OnCustomProtocolProto );
+const OnCustomProtocolPtr = koffi.pointer('OnCustomProtocolPtr', OnCustomProtocolProto);
 // --- 4. Definisikan Struct WebArg ---
 const WebArg = koffi.struct('WebArg', {
     url: 'char *',
@@ -46,7 +46,7 @@ const WebArg = koffi.struct('WebArg', {
     title: 'char *',
     custom_protocol: 'char *',
     // KUNCI: Gunakan koffi.pointer() di sekitar prototype
-    on_custom_protocol: OnCustomProtocolPtr, 
+    on_custom_protocol: OnCustomProtocolPtr,
     width: 'int',
     height: 'int',
     is_kiosk: 'bool',
@@ -56,22 +56,42 @@ const WebArg = koffi.struct('WebArg', {
 
 const openWebView = lib.func("openWebView", "void", [koffi.pointer(WebArg)]);
 
+let sleep = (n: number) => {
+    return new Promise((r, x) => {
+        setTimeout(() => {
+            r(null);
+        }, n);
+    })
+}
 
-const myHandler = (reqPtr: any, cbPtr: any, dataPtr: any) => {
+
+type MyCb = (res: any, dptr: any) => void;
+let onSendResponseCB: MyCb | null = null;
+let onDataPTr: any;
+
+const myHandler = async (reqPtr: any, cbPtr: any, dataPtr: any) => {
     console.log("🔥 BOOM! Callback terpanggil!");
-    
-    const sendResponse = koffi.decode(cbPtr, SendResponseProto);
+    console.log("kita coba buat ia menungu");
+    console.log(" menungu selesai");
+    let SendResponse = koffi.decode(cbPtr, SendResponseProto);
+
+    await sleep(2000);
+
     const res = {
         body: Buffer.from("Halo!"),
         body_len: 5,
         content_type: "text/plain",
         status: 200
     };
-    sendResponse(res, dataPtr);
+    //@ts-ignore
+    SendResponse(res, dataPtr);
+
 };
 
 // Daftarkan pointer fungsinya
 const handlerPtr = koffi.register(myHandler, koffi.pointer(OnCustomProtocolProto));
+
+
 
 const dataAwal: WebArgData = {
     url: createCBuffer("myprot://localhost"),
@@ -88,6 +108,22 @@ const dataAwal: WebArgData = {
 
 // 7. Alokasi dan Encode
 const arg = koffi.alloc(WebArg, 1);
-koffi.encode(arg, WebArg, dataAwal); 
- 
+koffi.encode(arg, WebArg, dataAwal);
+
+async function test() {
+    console.log("ini dulu kan ya");
+    await sleep(2000);
+    console.log("ini dulu kan ya333");
+
+}
+
+
+(async () => {
+    while (true) {
+        await sleep(1000);
+        console.log("waiting"); 
+    }
+})();
+
+
 openWebView(arg);

@@ -2,14 +2,19 @@ use crate::webconfig::{
     self, ResourceRequest, ResourceResponse, SendResponse, get_string_from_cpointer,
     string_tocstring,
 };
-use std::thread;
+use std::{ffi::CString, thread};
+
+use tao::event_loop::EventLoopBuilder;
+use tao::platform::windows::EventLoopBuilderExtWindows;
 use tao::{
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::{ControlFlow},
     window::WindowBuilder,
 };
 use wry::{PermissionResponse, WebViewBuilder, WebViewBuilderExtWindows};
 pub fn open_webview(webviewcon: &webconfig::WebArg) {
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoopBuilder::new()
+    .with_any_thread(true)
+    .build();
 
     unsafe {
         let mut data_path = std::env::temp_dir();
@@ -42,61 +47,59 @@ pub fn open_webview(webviewcon: &webconfig::WebArg) {
     let on_custom_protocol = webviewcon.on_custom_protocol;
     let _webview = WebViewBuilder::new()
         .with_devtools(webviewcon.is_debug)
-        .with_autoplay(true) 
+        .with_autoplay(true)
         .with_permission_handler(|kind| {
             println!("Otomatis mengizinkan: {:?}", kind);
             PermissionResponse::Allow
         })
         .with_asynchronous_custom_protocol(custom_protocol, move |_id, _request, responder| {
             let req_method = _request.method().to_string();
+            let req_method_cstr =  string_tocstring(req_method);
             let uri = _request.uri().to_string();
+            let uriptr = string_tocstring(uri);
+            let body_bytes: &[u8] = _request.body();
+            let res_req = ResourceRequest {
+                uri: uriptr.as_ptr(),
+                body: body_bytes.as_ptr(),
+                body_len: body_bytes.len(),
+                method: req_method_cstr.as_ptr(),
+            };
 
-            thread::spawn(move || {
-                let uriptr = string_tocstring(uri);
-                let body_bytes: &[u8] = _request.body();
-                let res_req = ResourceRequest {
-                    uri: uriptr.as_ptr(),
-                    body: body_bytes.as_ptr(),
-                    body_len: body_bytes.len(),
-                    method: req_method.as_ptr() as *const i8,
-                };
+            let myres_callback: SendResponse = {
+                extern "C" fn internal_callback(
+                    responsess: *const ResourceResponse,
+                    user_data: *const std::ffi::c_void,
+                ) {
+                    unsafe {
+                        let Some(phpresponse) = responsess.as_ref() else {
+                            return;
+                        };
 
-                let myres_callback: SendResponse = {
-                    extern "C" fn internal_callback(
-                        responsess: *const ResourceResponse,
-                        user_data: *const std::ffi::c_void,
-                    ) {
+                        let data_slice =
+                            std::slice::from_raw_parts(phpresponse.body, phpresponse.body_len);
+                        let body_vec = data_slice.to_vec();
 
-                        unsafe {
-                            let Some(phpresponse) = responsess.as_ref() else {
-                                return;
-                            };
+                        let response = wry::http::Response::builder()
+                            .header(
+                                "Content-Type",
+                                get_string_from_cpointer(phpresponse.content_type),
+                            )
+                            .body(body_vec)
+                            .unwrap();
 
-                            let data_slice =
-                                std::slice::from_raw_parts(phpresponse.body, phpresponse.body_len);
-                            let body_vec = data_slice.to_vec();
+                        let responder = Box::from_raw(user_data as *mut wry::RequestAsyncResponder);
 
-                            let response = wry::http::Response::builder()
-                                .header(
-                                    "Content-Type",
-                                    get_string_from_cpointer(phpresponse.content_type),
-                                )
-                                .body(body_vec)
-                                .unwrap();
-
-                            let responder =
-                                Box::from_raw(user_data as *mut wry::RequestAsyncResponder);
-
-                            responder.respond(response);
-                        }
+                        responder.respond(response);
                     }
-                    internal_callback
-                };
-                let responder_ptr = Box::into_raw(Box::new(responder));
+                }
+                internal_callback
+            };
+            let responder_ptr = Box::into_raw(Box::new(responder));
 
-                println!("call jscallbak");
-                on_custom_protocol(&res_req, myres_callback, responder_ptr as *const _);
-            });
+            println!("call jscallbak");
+            on_custom_protocol(&res_req, myres_callback, responder_ptr as *const _);
+            
+            println!("call jscallbak Done");
         })
         .with_url(url)
         .build(&_mywindow);
