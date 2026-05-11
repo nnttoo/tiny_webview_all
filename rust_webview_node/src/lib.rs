@@ -9,15 +9,15 @@ use std::{
 
 use tao::{
     event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy, EventLoopWindowTarget},
+    event_loop::{EventLoopBuilder, EventLoopProxy, EventLoopWindowTarget},
     platform::windows::EventLoopBuilderExtWindows,
     window::{Window, WindowId},
 };
 use wry::WebView;
 
-use crate::webconfig::{
-    ResourceRequest, ResourceResponse, SendResponse, WebArg, get_string_from_cpointer,
-};
+use crate::webconfig::
+    WebArg
+;
 
 type MyCallback = extern "C" fn(progress: i32);
 #[unsafe(no_mangle)]
@@ -63,9 +63,13 @@ fn save_window(id: WindowId, window: Window, webview: WebView) {
     }
 }
 
+ 
+fn create_event_loop() {
 
-#[unsafe(no_mangle)]
-pub extern "C" fn createEventLoop() {
+    if PROXY.get().is_some(){
+        return;
+    }
+
     println!("event loop created");
     let (tx, rx) = mpsc::channel::<EventLoopProxy<CustomEvent>>();
     thread::spawn(move || {
@@ -77,7 +81,7 @@ pub extern "C" fn createEventLoop() {
 
         tx.send(proxy).unwrap();
 
-        event_loop.run(move |event, elwt, control_flow| match event {
+        event_loop.run(move |event, elwt, _| match event {
             Event::UserEvent(CustomEvent::Execute(f)) => {
                 f(elwt);
             }
@@ -104,6 +108,8 @@ pub extern "C" fn openWebView(webconfig_mut: *mut WebArg) {
         return;
     }
 
+    create_event_loop();
+
     // Gak perlu 'unsafe' blok di sini!
     let Some(proxy) = PROXY.get() else {
         return;
@@ -124,4 +130,14 @@ pub extern "C" fn openWebView(webconfig_mut: *mut WebArg) {
 
     let _ = proxy.send_event(CustomEvent::Execute(command));
     println!("Event berhasil dikirim, PROXY masih aman di brankas.");
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn get_active_window_count() -> usize { 
+    if let Ok(map) = WEBVIEWS.get_or_init(|| Mutex::new(HashMap::new())).lock() {
+        let count = map.len(); 
+        count
+    } else {
+        0 // Jika gagal lock, anggap 0 (aman)
+    }
 }

@@ -58,6 +58,7 @@ $ffi = FFI::cdef("
     } WebArg;
 
     void openWebView(WebArg* webconfig);  
+    size_t get_active_window_count();  
 ", 
 "../rust_webview_node/target/release/webview_node.dll"); // Sesuaikan path ke file DLL kamu
 
@@ -108,5 +109,10 @@ echo "\n\nDiprintDIPHP : " . FFI::string($arg->url) . "\n\n";
 while (true) {
     sleep(1);
     echo "waiting\n";
+    $windowcount = $ffi->get_active_window_count();
+    if($windowcount == 0){
+        echo "all windows has closed";
+        break;
+    }
 }
 ?>

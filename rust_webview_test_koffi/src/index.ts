@@ -55,7 +55,8 @@ const WebArg = koffi.struct('WebArg', {
 });
 
 const openWebView = lib.func("openWebView", "void", [koffi.pointer(WebArg) ]);
-const createEventLoop = lib.func("createEventLoop", "void *", []);
+
+const get_active_window_count = lib.func("get_active_window_count", "size_t", []);
 
 let sleep = (n: number) => {
     return new Promise((r, x) => {
@@ -64,8 +65,7 @@ let sleep = (n: number) => {
         }, n);
     })
 }
-
-createEventLoop();
+ 
 
 
 type MyCb = (res: any, dptr: any) => void;
@@ -124,12 +124,17 @@ openWebView.async(arg, () => {
     console.log("webclosed");
 });
  
- 
+  
 
 (async () => {
     while (true) {
         await sleep(1000);
         console.log("waiting");
+        let window = get_active_window_count() as number;
+        if(window == 0){
+            console.log("all window has closed");
+            break;
+        }
     }
 })();
 

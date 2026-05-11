@@ -4,11 +4,10 @@ use crate::webconfig::{
     string_tocstring,
 }; 
 
-use tao::event_loop::{EventLoopBuilder, EventLoopWindowTarget};
-use tao::platform::windows::EventLoopBuilderExtWindows;
+use tao::event_loop::EventLoopWindowTarget;
 use tao::window::Window;
 use tao::window::WindowId;
-use tao::{event_loop::ControlFlow, window::WindowBuilder};
+use tao::window::WindowBuilder;
 use wry::{PermissionResponse, WebView, WebViewBuilder, WebViewBuilderExtWindows};
 pub fn open_webview(
     webviewcon: &webconfig::WebArg,
@@ -46,7 +45,7 @@ pub fn open_webview(
     let wid = _mywindow.id();
 
     let on_custom_protocol = webviewcon.on_custom_protocol;
-    let mut webview = WebViewBuilder::new()
+    let webview = WebViewBuilder::new()
         .with_devtools(webviewcon.is_debug)
         .with_autoplay(true)
         .with_https_scheme(true)
