@@ -2507,8 +2507,7 @@ checksum = "1ffae5123b2d3fc086436f8834ae3ab053a283cfac8fe0a0b8eaae044768a4c4"
 [[package]]
 name = "wry"
 version = "0.55.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3013fd6116aac351dd2e18f349b28b2cfef3a5ff3253a9d0ce2d7193bb1b4429"
+source = "git+https://github.com/nnttoo/wry?branch=feat%2Fpermission-handler#88472aedf318287eddd832cc3e2217cde426f766"
 dependencies = [
  "base64",
  "block2",

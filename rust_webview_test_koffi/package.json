@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node ./src/index.js"
+    "buildrust" : "cd ../rust_webview_node && npm run build",
+    "run": "tsx ./src/index.ts",
+    "brun" : "npm run buildrust && npm run run"
   },
   "author": "",
   "license": "ISC",
@@ -12,6 +14,8 @@
     "koffi": "^2.16.2"
   },
   "devDependencies": {
-    "@types/node": "^25.6.2"
+    "@types/node": "^25.6.2",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
   }
 }
