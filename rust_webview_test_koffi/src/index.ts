@@ -11,8 +11,7 @@ interface WebArgData {
     is_maximize: boolean;
     is_debug: boolean;
 }
-
-// Helper untuk membuat buffer string null-terminated
+ 
 function createCBuffer(str: string): Buffer {
     return Buffer.from(str + "\0", "utf8");
 }
@@ -30,16 +29,10 @@ const ResourceResponse = koffi.struct('ResourceResponse', {
     body_len: 'size_t',
     content_type: 'char *',
     status: 'int',
-});
-// --- 2. Definisikan Prototype untuk SendResponse ---
-// Di Rust: pub type SendResponse = extern "C" fn(response: *const ResourceResponse, *const c_void);
-const SendResponseProto = koffi.proto('void SendResponse(const ResourceResponse *response, const void *userData)');
-// --- 3. Definisikan Prototype untuk Callback Utama ---
-// Di Rust: on_custom_protocol: extern "C" fn(*const ResourceRequest, SendResponse, *const c_void)
-// PENTING: SendResponse di sini adalah sebuah CALLBACK POINTER
+}); 
+const SendResponseProto = koffi.proto('void SendResponse(const ResourceResponse *response, const void *userData)'); 
 const OnCustomProtocolProto = koffi.proto('void OnCustomProtocol(const ResourceRequest *req, SendResponse *cb, const void *data)')
-const OnCustomProtocolPtr = koffi.pointer('OnCustomProtocolPtr', OnCustomProtocolProto);
-// --- 4. Definisikan Struct WebArg ---
+const OnCustomProtocolPtr = koffi.pointer('OnCustomProtocolPtr', OnCustomProtocolProto); 
 const WebArg = koffi.struct('WebArg', {
     url: 'char *',
     wclassname: 'char *',
@@ -54,10 +47,8 @@ const WebArg = koffi.struct('WebArg', {
     is_debug: 'bool'
 });
 
-const openWebView = lib.func("openWebView", "void", [koffi.pointer(WebArg) ]);
-
-const get_active_window_count = lib.func("get_active_window_count", "size_t", []);
-
+const openWebView = lib.func("openWebView", "void", [koffi.pointer(WebArg) ]); 
+const get_active_window_count = lib.func("get_active_window_count", "size_t", []); 
 let sleep = (n: number) => {
     return new Promise((r, x) => {
         setTimeout(() => {
@@ -65,12 +56,7 @@ let sleep = (n: number) => {
         }, n);
     })
 }
- 
-
-
-type MyCb = (res: any, dptr: any) => void;
-let onSendResponseCB: MyCb | null = null;
-let onDataPTr: any;
+  
 
 const myHandler = async (reqPtr: any, cbPtr: any, dataPtr: any) => {
     console.log("🔥 BOOM! Callback terpanggil!");
@@ -111,14 +97,7 @@ const dataAwal: WebArgData = {
 
 // 7. Alokasi dan Encode
 const arg = koffi.alloc(WebArg, 1);
-koffi.encode(arg, WebArg, dataAwal);
-
-async function test() {
-    console.log("ini dulu kan ya");
-    await sleep(2000);
-    console.log("ini dulu kan ya333");
-
-}
+koffi.encode(arg, WebArg, dataAwal); 
 
 openWebView.async(arg, () => {
     console.log("webclosed");
