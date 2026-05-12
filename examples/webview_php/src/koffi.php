@@ -60,7 +60,7 @@ $ffi = FFI::cdef("
     void openWebView(WebArg* webconfig);  
     size_t get_active_window_count();  
 ", 
-"../rust_webview_node/target/release/webview_node.dll"); // Sesuaikan path ke file DLL kamu
+"../../rust_webview_core/target/release/webview_node.dll"); // Sesuaikan path ke file DLL kamu
 
 /// 2. Buat Callback di PHP
 // Ini adalah fungsi PHP yang akan dipanggil oleh Rust

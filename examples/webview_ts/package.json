@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "buildrust" : "cd ../rust_webview_node && npm run build",
+    "buildrust" : "cd ../../rust_webview_core && npm run build",
     "run": "tsx ./src/index.ts",
     "brun" : "npm run buildrust && npm run run"
   },

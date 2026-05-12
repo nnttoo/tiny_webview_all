@@ -17,7 +17,7 @@ function createCBuffer(str: string): Buffer {
 }
 
 // 2. Load Library
-const lib = koffi.load("../rust_webview_node/target/release/webview_node.dll");
+const lib = koffi.load("../../rust_webview_core/target/release/webview_node.dll");
 const ResourceRequest = koffi.struct('ResourceRequest', {
     uri: 'char *',
     method: 'char *',
