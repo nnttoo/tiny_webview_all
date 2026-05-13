@@ -8,6 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 rfd = "0.17.2"
+serde_json = "1.0.149"
 tao = "0.35.0"
 wry = { git = "https://github.com/nnttoo/wry", branch = "feat/permission-handler" }
- 
+serde = { version = "1", features = ["derive"] }

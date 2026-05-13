@@ -1,8 +1,12 @@
+mod selector_arg;
 mod webconfig;
 mod webview_open;
- 
+
 use std::{
-    collections::HashMap, ffi::c_char, sync::{Mutex, OnceLock, mpsc}, thread
+    collections::HashMap,
+    ffi::c_char,
+    sync::{Mutex, OnceLock, mpsc},
+    thread,
 };
 
 use rfd::FileDialog;
@@ -14,19 +18,20 @@ use tao::{
 };
 use wry::WebView;
 
-use crate::webconfig::{WebArg, get_string_from_cpointer};
+use crate::{
+    selector_arg::FileSelectorArg,
+    webconfig::{WebArg, get_string_from_cpointer},
+};
 
 type BoxedCommand = Box<dyn FnOnce(&EventLoopWindowTarget<CustomEvent>) + Send + 'static>;
 // 2. Enum untuk menampung perintah
 enum CustomEvent {
     Execute(BoxedCommand),
 }
- 
 
 struct UnsafeWrapper<T>(pub T);
 unsafe impl<T> Send for UnsafeWrapper<T> {}
 unsafe impl<T> Sync for UnsafeWrapper<T> {}
-
 
 static PROXY: OnceLock<EventLoopProxy<CustomEvent>> = OnceLock::new();
 static WEBVIEWS: OnceLock<
@@ -109,23 +114,23 @@ pub extern "C" fn openWebView(webconfig_mut: *mut WebArg) {
     // Gak perlu 'unsafe' blok di sini!
     let Some(proxy) = PROXY.get() else {
         return;
-    }; 
+    };
 
-    let config_addr = webconfig_mut as usize; 
+    let config_addr = webconfig_mut as usize;
 
     let command = Box::new(move |elwt: &EventLoopWindowTarget<CustomEvent>| {
         // Logic bikin window...
         println!("Membuka window di thread Event Loop...");
         unsafe {
             let ptr = config_addr as *mut WebArg;
-            let config: &WebArg = &*ptr;  
-            let (w, bw, w_id) = webview_open::open_webview(config, elwt); 
+            let config: &WebArg = &*ptr;
+            let (w, bw, w_id) = webview_open::open_webview(config, elwt);
             save_window(w_id, w, bw, config);
         }
     });
 
     let _ = proxy.send_event(CustomEvent::Execute(command));
-    println!("Event berhasil dikirim, PROXY masih aman di brankas."); 
+    println!("Event berhasil dikirim, PROXY masih aman di brankas.");
 }
 
 #[unsafe(no_mangle)]
@@ -138,27 +143,21 @@ pub extern "C" fn get_active_window_count() -> usize {
     }
 }
 
-
-
 #[unsafe(no_mangle)]
-pub extern  "C" fn select_file(
-    file_type_c : *const c_char, 
-    file_ext_c : *const c_char
-){
+pub extern "C" fn select_file(json_config: *const c_char) {
+    let jsonstr = get_string_from_cpointer(json_config);
+    let configresult = match serde_json::from_str::<FileSelectorArg>(&jsonstr) {
+        Ok(v) => v,
+        Err(_) => return,
+    };
 
-    let file_type = get_string_from_cpointer(file_type_c);
-    let file_ext = get_string_from_cpointer(file_ext_c);
+    let mut file_d = FileDialog::new().set_directory(configresult.root_dir);
 
-    let exts : Vec<String> = file_ext.split(",")
-        .map(|s| s.trim())
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
-        .collect();
+    for item in configresult.file_types {
+        file_d = file_d.add_filter(item.file_name, &item.ext);
+    }
 
-    let file = FileDialog::new()
-        .add_filter(file_type, &exts)  
-        .set_directory("/")              
-        .pick_file();    
+    let file = file_d.pick_file();
 
     match file {
         Some(path) => println!("User memilih: {:?}", path),

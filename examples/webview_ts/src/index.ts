@@ -58,7 +58,7 @@ const WebArg = koffi.struct('WebArg', {
     is_debug: 'bool'
 });
 
-const dialogFile = lib.func("select_file", "void", ["char*","char*"]);
+const dialogFile = lib.func("select_file", "void", ["char*"]);
 const openWebView = lib.func("openWebView", "void", [koffi.pointer(WebArg)]);
 const get_active_window_count = lib.func("get_active_window_count", "size_t", []);
 let sleep = (n: number) => {
@@ -137,8 +137,7 @@ koffi.encode(arg, WebArg, {
                 body_len: 5,
                 content_type: "text/plain",
                 status: 200
-            };
-            //@ts-ignore
+            }; 
             SendResponse(res, dataPtr);
 
         },
@@ -146,7 +145,7 @@ koffi.encode(arg, WebArg, {
     ),
     on_window_closed: savedPointer2 = koffi.register(
         () => {
-            console.log("ini setelah ditutup"); 
+            console.log("ini setelah ditutup");
         },
         OnWindowClosePtr
     ),
@@ -159,8 +158,29 @@ koffi.encode(arg, WebArg, {
 
 openWebView(arg);
 
-sleep(2000).finally(()=>{
-    dialogFile("RojoMolo","img,txt,md");
+interface FileType {
+    file_name: string,
+    ext: string[]
+}
+interface FileSelectorArg{
+    root_dir : string,
+    file_types : FileType[]
+}
+
+function dialogFileJs(fileex : FileSelectorArg){
+    let jsontxt = JSON.stringify(fileex);
+
+    dialogFile(jsontxt);
+}
+
+sleep(2000).finally(() => {
+    dialogFileJs({
+        root_dir : "C:\\Users\\Anto\\Downloads\\New folder",
+        file_types : [{
+            ext : ["zip","exe"],
+            file_name : "Sembarang"
+        }]
+    })
 });
 
 
@@ -169,7 +189,7 @@ sleep(2000).finally(()=>{
         await sleep(1000);
         console.log("waiting");
         let window = get_active_window_count() as number;
-        if(window == 0){
+        if (window == 0) {
             console.log("all window has closed");
             break;
         }
