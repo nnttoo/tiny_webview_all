@@ -2,7 +2,7 @@
   "name": "rust_webview_test_koffi",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index.js", 
   "scripts": {
     "buildrust" : "cd ../../rust_webview_core && npm run build",
     "run": "tsx ./src/index.ts",

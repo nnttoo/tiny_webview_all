@@ -2,7 +2,7 @@ mod webconfig;
 mod webview_open;
 
 use std::{
-    collections::HashMap,
+    collections::HashMap, 
     sync::{Mutex, OnceLock, mpsc},
     thread,
 };
@@ -15,33 +15,22 @@ use tao::{
 };
 use wry::WebView;
 
-use crate::webconfig::
-    WebArg
-;
-
-type MyCallback = extern "C" fn(progress: i32);
-#[unsafe(no_mangle)]
-pub extern "C" fn TestCallback(cb: MyCallback) {
-    // Memanggil callback dari sisi Rust
-    // Pastikan callback tidak null jika dikirim dari bahasa lain
-    cb(50);
-    cb(100);
-}
+use crate::webconfig::WebArg;
 
 type BoxedCommand = Box<dyn FnOnce(&EventLoopWindowTarget<CustomEvent>) + Send + 'static>;
 // 2. Enum untuk menampung perintah
 enum CustomEvent {
     Execute(BoxedCommand),
 }
-// 1. Buat Wrapper
-struct UnsafeWrapper<T>(pub T);
+ 
 
-// 2. Paksa Rust percaya kalau ini aman (karena kita pakai Mutex nanti)
+struct UnsafeWrapper<T>(pub T);
 unsafe impl<T> Send for UnsafeWrapper<T> {}
 unsafe impl<T> Sync for UnsafeWrapper<T> {}
 static PROXY: OnceLock<EventLoopProxy<CustomEvent>> = OnceLock::new();
-static WEBVIEWS: OnceLock<Mutex<HashMap<WindowId, UnsafeWrapper<(Window, WebView)>>>> =
-    OnceLock::new();
+static WEBVIEWS: OnceLock<
+    Mutex<HashMap<WindowId, UnsafeWrapper<(Window, WebView, *const WebArg)>>>,
+> = OnceLock::new();
 
 fn close_window(window_id: WindowId) {
     // Langsung akses WEBVIEWS, inisialisasi jika belum, lalu lock
@@ -50,23 +39,29 @@ fn close_window(window_id: WindowId) {
         .lock()
         .unwrap();
 
-    // Langsung hapus
+    if let Some(wrapper) = map.get(&window_id) {
+        let (_, _, arg_ptr) = &wrapper.0;
+
+        unsafe {
+            let cbwraper: &WebArg = &**arg_ptr;
+            (cbwraper.on_window_closed)();
+        }
+    }
+
     if map.remove(&window_id).is_some() {
         println!("Window {:?} ditutup.", window_id);
     }
 }
-fn save_window(id: WindowId, window: Window, webview: WebView) { 
-    if let Ok(mut map) = WEBVIEWS.get_or_init(|| Mutex::new(HashMap::new())).lock() { 
-        map.insert(id, UnsafeWrapper((window, webview)));
-        
+fn save_window(id: WindowId, window: Window, webview: WebView, cb_wraper: *const WebArg) {
+    if let Ok(mut map) = WEBVIEWS.get_or_init(|| Mutex::new(HashMap::new())).lock() {
+        map.insert(id, UnsafeWrapper((window, webview, cb_wraper)));
+
         println!("Window {:?} sukses disimpan di brankas.", id);
     }
 }
 
- 
 fn create_event_loop() {
-
-    if PROXY.get().is_some(){
+    if PROXY.get().is_some() {
         return;
     }
 
@@ -113,29 +108,29 @@ pub extern "C" fn openWebView(webconfig_mut: *mut WebArg) {
     // Gak perlu 'unsafe' blok di sini!
     let Some(proxy) = PROXY.get() else {
         return;
-    };
+    }; 
 
-    let config_addr = webconfig_mut as usize;
+    let config_addr = webconfig_mut as usize; 
 
     let command = Box::new(move |elwt: &EventLoopWindowTarget<CustomEvent>| {
         // Logic bikin window...
         println!("Membuka window di thread Event Loop...");
         unsafe {
             let ptr = config_addr as *mut WebArg;
-            let config: &WebArg = &*ptr;
-            let (w,bw,w_id)= webview_open::open_webview(config, elwt); 
-            save_window(w_id,w,bw);
+            let config: &WebArg = &*ptr;  
+            let (w, bw, w_id) = webview_open::open_webview(config, elwt); 
+            save_window(w_id, w, bw, config);
         }
     });
 
     let _ = proxy.send_event(CustomEvent::Execute(command));
-    println!("Event berhasil dikirim, PROXY masih aman di brankas.");
+    println!("Event berhasil dikirim, PROXY masih aman di brankas."); 
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn get_active_window_count() -> usize { 
+pub extern "C" fn get_active_window_count() -> usize {
     if let Ok(map) = WEBVIEWS.get_or_init(|| Mutex::new(HashMap::new())).lock() {
-        let count = map.len(); 
+        let count = map.len();
         count
     } else {
         0 // Jika gagal lock, anggap 0 (aman)
