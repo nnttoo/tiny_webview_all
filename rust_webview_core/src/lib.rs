@@ -1,12 +1,11 @@
 mod webconfig;
 mod webview_open;
-
+ 
 use std::{
-    collections::HashMap, 
-    sync::{Mutex, OnceLock, mpsc},
-    thread,
+    collections::HashMap, ffi::c_char, sync::{Mutex, OnceLock, mpsc}, thread
 };
 
+use rfd::FileDialog;
 use tao::{
     event::{Event, WindowEvent},
     event_loop::{EventLoopBuilder, EventLoopProxy, EventLoopWindowTarget},
@@ -15,7 +14,7 @@ use tao::{
 };
 use wry::WebView;
 
-use crate::webconfig::WebArg;
+use crate::webconfig::{WebArg, get_string_from_cpointer};
 
 type BoxedCommand = Box<dyn FnOnce(&EventLoopWindowTarget<CustomEvent>) + Send + 'static>;
 // 2. Enum untuk menampung perintah
@@ -27,6 +26,8 @@ enum CustomEvent {
 struct UnsafeWrapper<T>(pub T);
 unsafe impl<T> Send for UnsafeWrapper<T> {}
 unsafe impl<T> Sync for UnsafeWrapper<T> {}
+
+
 static PROXY: OnceLock<EventLoopProxy<CustomEvent>> = OnceLock::new();
 static WEBVIEWS: OnceLock<
     Mutex<HashMap<WindowId, UnsafeWrapper<(Window, WebView, *const WebArg)>>>,
@@ -134,5 +135,33 @@ pub extern "C" fn get_active_window_count() -> usize {
         count
     } else {
         0 // Jika gagal lock, anggap 0 (aman)
+    }
+}
+
+
+
+#[unsafe(no_mangle)]
+pub extern  "C" fn select_file(
+    file_type_c : *const c_char, 
+    file_ext_c : *const c_char
+){
+
+    let file_type = get_string_from_cpointer(file_type_c);
+    let file_ext = get_string_from_cpointer(file_ext_c);
+
+    let exts : Vec<String> = file_ext.split(",")
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect();
+
+    let file = FileDialog::new()
+        .add_filter(file_type, &exts)  
+        .set_directory("/")              
+        .pick_file();    
+
+    match file {
+        Some(path) => println!("User memilih: {:?}", path),
+        None => println!("User membatalkan pilihan."),
     }
 }

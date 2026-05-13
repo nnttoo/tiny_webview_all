@@ -58,6 +58,7 @@ const WebArg = koffi.struct('WebArg', {
     is_debug: 'bool'
 });
 
+const dialogFile = lib.func("select_file", "void", ["char*","char*"]);
 const openWebView = lib.func("openWebView", "void", [koffi.pointer(WebArg)]);
 const get_active_window_count = lib.func("get_active_window_count", "size_t", []);
 let sleep = (n: number) => {
@@ -157,6 +158,10 @@ koffi.encode(arg, WebArg, {
 });
 
 openWebView(arg);
+
+sleep(2000).finally(()=>{
+    dialogFile("RojoMolo","img,txt,md");
+});
 
 
 (async () => {
