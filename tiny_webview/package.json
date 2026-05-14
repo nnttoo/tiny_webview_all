@@ -1,11 +1,60 @@
 {
   "name": "tiny_webview",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nnttoo/tiny_webview_all"
+  },
   "description": "",
-  "main": "index.js",
+  "main": "./tsDist/tsExport/winwebview2.js",
+  "types": "./tsDist/tsExport/winwebview2.d.ts",
+  "exports": {
+    "./browser": {
+      "types": "./dist/browser/ww2_browser.d.ts",
+      "default": "./dist/browser/ww2_browser.js"
+    },
+    "./node": {
+      "types": "./dist/node/tsExport/winwebview2.dt.ts",
+      "default": "./dist/node/tsExport/winwebview2.js"
+    },
+    "./builder": {
+      "types": "./dist/node/builderApi/builderApi.d.ts",
+      "default": "./dist/node/builderApi/builderApi.js"
+    }
+  },
+  "bin": {
+    "win_webview2": "tsDistRun.js",
+    "wwv": "tsDistRun.js"
+  },
+  "type": "commonjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build_node": "tsc -p ./src/srcNode/tsconfig.json",
+    "build_node_watch": "npm run build_node -- --watch",
+    "build_browser": "tsc -p ./src/srcBrowser/tsconfig.json",
+    "build_browser_watch": "npm run build_browser -- --watch",
+    "build_all": "npm run build_node && npm run build_browser",
+    "copy_dll": "tsx ./srcInternal/copyDll.ts",
+    "Clean_WinLib": "rm -rf ./win_lib"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "adm-zip": "^0.5.17",
+    "comment-json": "^4.6.2",
+    "degit": "^2.8.4",
+    "express": "^5.2.1",
+    "pe-library": "^2.0.1",
+    "prompts": "^2.4.2",
+    "resedit": "^3.0.2",
+    "sharp": "^0.34.5",
+    "sharp-ico": "^0.1.5",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.2",
+    "@types/prompts": "^2.4.9",
+    "typescript": "^6.0.2"
+  }
 }
