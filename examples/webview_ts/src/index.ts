@@ -172,18 +172,7 @@ function dialogFileJs(fileex : FileSelectorArg){
 
     dialogFile(jsontxt);
 }
-
-sleep(2000).finally(() => {
-    dialogFileJs({
-        root_dir : "C:\\Users\\Anto\\Downloads\\New folder",
-        file_types : [{
-            ext : ["zip","exe"],
-            file_name : "Sembarang"
-        }]
-    })
-});
-
-
+ 
 (async () => {
     while (true) {
         await sleep(1000);

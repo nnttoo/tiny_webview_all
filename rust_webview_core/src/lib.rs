@@ -110,30 +110,30 @@ pub extern "C" fn openWebView(webconfig_mut: *mut WebArg) {
         return;
     }
 
-    create_event_loop();
+    //create_event_loop();
 
     testpointer::test_pointer();
 
-    // Gak perlu 'unsafe' blok di sini!
-    let Some(proxy) = PROXY.get() else {
-        return;
-    };
+    // // Gak perlu 'unsafe' blok di sini!
+    // let Some(proxy) = PROXY.get() else {
+    //     return;
+    // };
 
-    let config_addr = webconfig_mut as usize;
+    // let config_addr = webconfig_mut as usize;
 
-    let command = Box::new(move |elwt: &EventLoopWindowTarget<CustomEvent>| {
-        // Logic bikin window...
-        println!("Membuka window di thread Event Loop...");
-        unsafe {
-            let ptr = config_addr as *mut WebArg;
-            let config: &WebArg = &*ptr;
-            let (w, bw, w_id) = webview_open::open_webview(config, elwt);
-            save_window(w_id, w, bw, config);
-        }
-    });
+    // let command = Box::new(move |elwt: &EventLoopWindowTarget<CustomEvent>| {
+    //     // Logic bikin window...
+    //     println!("Membuka window di thread Event Loop...");
+    //     unsafe {
+    //         let ptr = config_addr as *mut WebArg;
+    //         let config: &WebArg = &*ptr;
+    //         let (w, bw, w_id) = webview_open::open_webview(config, elwt);
+    //         save_window(w_id, w, bw, config);
+    //     }
+    // });
 
-    let _ = proxy.send_event(CustomEvent::Execute(command));
-    println!("Event berhasil dikirim, PROXY masih aman di brankas.");
+    // let _ = proxy.send_event(CustomEvent::Execute(command));
+    // println!("Event berhasil dikirim, PROXY masih aman di brankas.");
 }
 
 #[unsafe(no_mangle)]
