@@ -100,7 +100,7 @@ fn create_event_loop() {
     });
 
     let proxy = rx.recv().unwrap();
-    let _ = PROXY.set(proxy);
+    let _ = PROXY.set(proxy); 
 }
 
 #[unsafe(no_mangle)]

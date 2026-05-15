@@ -27,7 +27,7 @@ function loadLib() {
 }
 
 
-export function openWebView() {
+export async function openWebView() {
     const ResourceRequest = koffi.struct('ResourceRequest', {
         uri: 'char *',
         method: 'char *',
@@ -75,6 +75,8 @@ export function openWebView() {
     let savedPointer: any = null;
     let savedPointer2: any = null;
 
+    let isWindowOnClosed = false;
+
     koffi.encode(arg, WebArg, {
         url: createCBuffer("myprot://localhost"),
         wclassname: createCBuffer("iniclassnamenyadeh"),
@@ -103,6 +105,7 @@ export function openWebView() {
         on_window_closed: savedPointer2 = koffi.register(
             () => {
                 console.log("ini setelah ditutup");
+                isWindowOnClosed = true;
             },
             OnWindowClosePtr
         ),
@@ -114,6 +117,15 @@ export function openWebView() {
     });
 
     openWebView(arg);
+
+    while(true){
+        await sleep(2000);
+        if(isWindowOnClosed) break;
+    }
+
+    koffi.unregister(savedPointer);
+    koffi.unregister(savedPointer2);
+    console.log("window closed");
 
 }
 

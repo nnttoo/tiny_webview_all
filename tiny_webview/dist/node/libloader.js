@@ -19,7 +19,7 @@ function loadLib() {
     // const get_active_window_count = lib.func("get_active_window_count", "size_t", []);
     return lib;
 }
-function openWebView() {
+async function openWebView() {
     const ResourceRequest = koffi_1.default.struct('ResourceRequest', {
         uri: 'char *',
         method: 'char *',
@@ -54,6 +54,7 @@ function openWebView() {
     const arg = koffi_1.default.alloc(WebArg, 1);
     let savedPointer = null;
     let savedPointer2 = null;
+    let isWindowOnClosed = false;
     koffi_1.default.encode(arg, WebArg, {
         url: (0, utils_1.createCBuffer)("myprot://localhost"),
         wclassname: (0, utils_1.createCBuffer)("iniclassnamenyadeh"),
@@ -75,6 +76,7 @@ function openWebView() {
         }, OnCustomProtocolPtr),
         on_window_closed: savedPointer2 = koffi_1.default.register(() => {
             console.log("ini setelah ditutup");
+            isWindowOnClosed = true;
         }, OnWindowClosePtr),
         width: 900,
         height: 600,
@@ -83,6 +85,14 @@ function openWebView() {
         is_debug: false
     });
     openWebView(arg);
+    while (true) {
+        await (0, utils_1.sleep)(2000);
+        if (isWindowOnClosed)
+            break;
+    }
+    koffi_1.default.unregister(savedPointer);
+    koffi_1.default.unregister(savedPointer2);
+    console.log("window closed");
 }
 async function keepLive() {
     let lib = loadLib();
