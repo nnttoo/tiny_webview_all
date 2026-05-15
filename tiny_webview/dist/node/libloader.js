@@ -37,7 +37,6 @@ function loadLib() {
 function openWebView(arg) {
     const WebArg = koffi_1.default.struct('WebArg', {
         url: 'char *',
-        wclassname: 'char *',
         title: 'char *',
         custom_protocol: 'char *',
         on_custom_protocol: OnCustomProtocolPtr,
@@ -66,7 +65,6 @@ function openWebView(arg) {
     });
     koffi_1.default.encode(webArgPointer, WebArg, {
         url: arg.url,
-        wclassname: "wnd" + Date.now(),
         custom_protocol: arg.customProtocol,
         title: arg.title,
         width: arg.width,
@@ -113,7 +111,6 @@ function openWebView(arg) {
             SendResponse(res, dataPtr);
         }, OnCustomProtocolPtr),
         on_window_closed: savedPointer2 = koffi_1.default.register(() => {
-            console.log("ini setelah ditutup");
             endKeepLive();
         }, OnWindowClosePtr),
     });

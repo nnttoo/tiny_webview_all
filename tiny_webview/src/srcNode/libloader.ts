@@ -75,8 +75,7 @@ export function openWebView(arg: WebConfig) {
 
 
     const WebArg = koffi.struct('WebArg', {
-        url: 'char *',
-        wclassname: 'char *',
+        url: 'char *', 
         title: 'char *',
         custom_protocol: 'char *',
         on_custom_protocol: OnCustomProtocolPtr,
@@ -110,8 +109,7 @@ export function openWebView(arg: WebConfig) {
     });
 
     koffi.encode(webArgPointer, WebArg, {
-        url: arg.url,
-        wclassname: "wnd" + Date.now() ,
+        url: arg.url, 
         custom_protocol: arg.customProtocol,
         title: arg.title,
 
@@ -177,8 +175,7 @@ export function openWebView(arg: WebConfig) {
             OnCustomProtocolPtr
         ),
         on_window_closed: savedPointer2 = koffi.register(
-            () => {
-                console.log("ini setelah ditutup");
+            () => { 
                 endKeepLive();
             },
             OnWindowClosePtr

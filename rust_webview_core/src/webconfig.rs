@@ -21,8 +21,7 @@ pub type SendResponse = extern "C" fn(response: *const ResourceResponse,*const c
 
 #[repr(C)]
 pub struct WebArg {
-    pub url: *const c_char,
-    pub wclassname: *const c_char,
+    pub url: *const c_char, 
     pub title: *const c_char,
     pub custom_protocol: *const c_char,
     pub on_custom_protocol: extern "C" fn(*const ResourceRequest, SendResponse, *const c_void), 

@@ -95,12 +95,8 @@ pub fn open_webview(
                 }
                 internal_callback
             };
-            let responder_ptr = Box::into_raw(Box::new(responder));
-
-            println!("call jscallbak");
-            on_custom_protocol(&res_req, myres_callback, responder_ptr as *const _);
-
-            println!("call jscallbak Done");
+            let responder_ptr = Box::into_raw(Box::new(responder)); 
+            on_custom_protocol(&res_req, myres_callback, responder_ptr as *const _); 
         })
         .with_url(url)
         .build(&_mywindow); 
