@@ -1,7 +1,6 @@
 mod selector_arg;
 mod webconfig;
-mod webview_open;
-mod testpointer;
+mod webview_open; 
 
 use std::{
     collections::HashMap,
@@ -110,9 +109,7 @@ pub extern "C" fn openWebView(webconfig_mut: *mut WebArg) {
         return;
     }
 
-    create_event_loop();
-
-    testpointer::test_pointer();
+    create_event_loop(); 
 
     // Gak perlu 'unsafe' blok di sini!
     let Some(proxy) = PROXY.get() else {

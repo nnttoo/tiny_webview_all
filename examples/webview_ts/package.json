@@ -11,7 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "koffi": "^2.16.2"
+    "koffi": "^2.16.2",
+    "tiny_webview": "file:../../tiny_webview"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
