@@ -1,4 +1,4 @@
-use crate::CustomEvent;
+use crate::lib_webview::CustomEvent;
 use crate::webconfig::{
     self, ResourceRequest, ResourceResponse, SendResponse, get_string_from_cpointer,
     string_tocstring,
@@ -57,7 +57,7 @@ pub fn open_webview(
             let req_method = _request.method().to_string();
             let req_method_cstr = string_tocstring(req_method);
             let uri = _request.uri().to_string();
-            let uriptr = string_tocstring(uri);
+            let uriptr = string_tocstring(uri); 
             let body_bytes: &[u8] = _request.body();
             let res_req = ResourceRequest {
                 uri: uriptr.as_ptr(),
