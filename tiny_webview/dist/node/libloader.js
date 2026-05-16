@@ -4,10 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.openWebView = openWebView;
-exports.keepLive = keepLive;
 const path_1 = __importDefault(require("path"));
 const koffi_1 = __importDefault(require("koffi"));
-const utils_1 = require("./util/utils");
 let lib = null;
 const ResourceRequest = koffi_1.default.struct('ResourceRequest', {
     uri: 'char *',
@@ -116,16 +114,4 @@ function openWebView(arg) {
     });
     openWebView(webArgPointer);
     return promise;
-}
-async function keepLive() {
-    let lib = loadLib();
-    const get_active_window_count = lib.func("get_active_window_count", "size_t", []);
-    while (true) {
-        await (0, utils_1.sleep)(1000);
-        let window = get_active_window_count();
-        if (window == 0) {
-            console.log("all window has closed");
-            break;
-        }
-    }
 }

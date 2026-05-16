@@ -1,5 +1,4 @@
-use std::{ffi::{CStr, c_char, c_int}, os::raw::c_void}; 
-use serde::Deserialize;
+use std::{ffi::{CStr, c_char, c_int}, os::raw::c_void};  
 
 #[repr(C)]
 pub struct ResourceRequest {

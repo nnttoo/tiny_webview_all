@@ -20,4 +20,3 @@ export interface WebConfig {
     isDebug: boolean;
 }
 export declare function openWebView(arg: WebConfig): Promise<void>;
-export declare function keepLive(): Promise<void>;

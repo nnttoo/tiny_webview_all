@@ -185,22 +185,6 @@ export function openWebView(arg: WebConfig) {
     openWebView(webArgPointer);
     return promise;
 
-}
-
-export async function keepLive() {
-
-
-    let lib = loadLib();
-    const get_active_window_count = lib.func("get_active_window_count", "size_t", []);
-
-    while (true) {
-        await sleep(1000);
-        let window = get_active_window_count() as number;
-        if (window == 0) {
-            console.log("all window has closed");
-            break;
-        }
-    }
-}
+} 
 
 

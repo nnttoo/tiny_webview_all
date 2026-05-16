@@ -20,7 +20,7 @@ pub fn open_webview(
         std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", data_path.to_str().unwrap());
     }
 
-    let url = get_string_from_cpointer(webviewcon.url);
+    let url = get_string_from_cpointer(webviewcon.url); 
     let title = get_string_from_cpointer(webviewcon.title);
     let custom_protocol = get_string_from_cpointer(webviewcon.custom_protocol);
 
@@ -57,6 +57,8 @@ pub fn open_webview(
             let req_method = _request.method().to_string();
             let req_method_cstr = string_tocstring(req_method);
             let uri = _request.uri().to_string();
+
+
             let uriptr = string_tocstring(uri); 
             let body_bytes: &[u8] = _request.body();
             let res_req = ResourceRequest {

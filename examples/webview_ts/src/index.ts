@@ -1,8 +1,12 @@
-import { CustomProtocolResponse, keepLive, openWebView } from "tiny_webview/node"
+import path from "node:path";
+import { createFileHandler, CustomProtocolResponse, openWebView } from "tiny_webview/node"
 
+
+const htmlPath = path.join(__dirname, "../html");
+const fileHandler = createFileHandler(htmlPath)
 
 openWebView({
-    url : "mytest://index.html?mypost=ttt",
+    url : "mytest://myapp.local/index.html",
     customProtocol : "mytest", 
     height : 500,
     width : 800,
@@ -10,10 +14,8 @@ openWebView({
     isKisok : false,
     isMaximize : false,
     title : "Test Title",
-    customProtocolOnRequest : async (p)=>{
-        let result = {
-            body : Buffer.from("Halo ini tst DUlu ya " + p.uri),
-        } as CustomProtocolResponse ;
+    customProtocolOnRequest : async (p)=>{ 
+        let result = await fileHandler(p); 
 
         return result;
     }
