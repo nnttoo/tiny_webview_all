@@ -43,7 +43,8 @@ function openWebView(arg) {
         height: 'int',
         is_kiosk: 'bool',
         is_maximize: 'bool',
-        is_debug: 'bool'
+        is_debug: 'bool',
+        windowid: "int",
     });
     let lib = loadLib();
     const openWebView = lib.func("openWebView", "void", [koffi_1.default.pointer(WebArg)]);
@@ -113,5 +114,29 @@ function openWebView(arg) {
         }, OnWindowClosePtr),
     });
     openWebView(webArgPointer);
+    let webarg = koffi_1.default.decode(webArgPointer, WebArg);
+    let windowId = webarg.windowid;
+    arg.onwindowOpenned({
+        close: () => {
+            const closeWindow = lib.func("closeWindow", "void", ["int"]);
+            closeWindow(windowId);
+        },
+        move: (l, t) => {
+            const moveWindow = lib.func("moveWindow", "void", ["int", "int", "int"]);
+            moveWindow(windowId, l, t);
+        },
+        resize: (width, height) => {
+            const resizeW = lib.func("resizeWindow", "void", ["int", "int", "int"]);
+            resizeW(windowId, width, height);
+        },
+        maximize: (isMax) => {
+            const maximize = lib.func("maximize", "void", ["int", "bool"]);
+            maximize(windowId, isMax);
+        },
+        minimize: (isMin) => {
+            const minimize = lib.func("minimize", "void", ["int", "bool"]);
+            minimize(windowId, isMin);
+        }
+    });
     return promise;
 }

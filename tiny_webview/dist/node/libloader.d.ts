@@ -8,7 +8,14 @@ export interface CustomProtocolRequest {
     method: string;
     body: Buffer<ArrayBuffer>;
 }
-export interface WebConfig {
+export interface TsOnlyWindowControl {
+    close: () => void;
+    move: (left: number, top: number) => void;
+    resize: (height: number, width: number) => void;
+    maximize: (ismax: boolean) => void;
+    minimize: (ismax: boolean) => void;
+}
+export interface TsOnlyWebConfig {
     url: string;
     customProtocol?: string;
     customProtocolOnRequest?: (p: CustomProtocolRequest) => Promise<CustomProtocolResponse>;
@@ -18,5 +25,6 @@ export interface WebConfig {
     isKisok: boolean;
     isMaximize: boolean;
     isDebug: boolean;
+    onwindowOpenned: (p: TsOnlyWindowControl) => void;
 }
-export declare function openWebView(arg: WebConfig): Promise<void>;
+export declare function openWebView(arg: TsOnlyWebConfig): Promise<void>;

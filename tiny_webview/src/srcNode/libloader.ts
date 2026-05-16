@@ -59,8 +59,16 @@ export interface CustomProtocolRequest {
     body: Buffer<ArrayBuffer>,
 }
 
-export interface WebConfig {
-    url: string, 
+export interface TsOnlyWindowControl {
+    close: () => void,
+    move: (left: number, top: number) => void,
+    resize: (height: number, width: number) => void,
+    maximize: (ismax: boolean) => void,
+    minimize: (ismax: boolean) => void,
+}
+
+export interface TsOnlyWebConfig {
+    url: string,
     customProtocol?: string,
     customProtocolOnRequest?: (p: CustomProtocolRequest) => Promise<CustomProtocolResponse>,
     title: string,
@@ -69,13 +77,14 @@ export interface WebConfig {
     isKisok: boolean,
     isMaximize: boolean,
     isDebug: boolean,
+    onwindowOpenned: (p: TsOnlyWindowControl) => void
 }
 
-export function openWebView(arg: WebConfig) {
+export function openWebView(arg: TsOnlyWebConfig) {
 
 
     const WebArg = koffi.struct('WebArg', {
-        url: 'char *', 
+        url: 'char *',
         title: 'char *',
         custom_protocol: 'char *',
         on_custom_protocol: OnCustomProtocolPtr,
@@ -84,7 +93,8 @@ export function openWebView(arg: WebConfig) {
         height: 'int',
         is_kiosk: 'bool',
         is_maximize: 'bool',
-        is_debug: 'bool'
+        is_debug: 'bool',
+        windowid: "int",
     });
 
     let lib = loadLib();
@@ -109,7 +119,7 @@ export function openWebView(arg: WebConfig) {
     });
 
     koffi.encode(webArgPointer, WebArg, {
-        url: arg.url, 
+        url: arg.url,
         custom_protocol: arg.customProtocol,
         title: arg.title,
 
@@ -155,7 +165,7 @@ export function openWebView(arg: WebConfig) {
                         reqResult = await arg.customProtocolOnRequest(custReq);
                     }
 
-                    if(reqResult == null) throw ""
+                    if (reqResult == null) throw ""
 
 
                     res = {
@@ -175,7 +185,7 @@ export function openWebView(arg: WebConfig) {
             OnCustomProtocolPtr
         ),
         on_window_closed: savedPointer2 = koffi.register(
-            () => { 
+            () => {
                 endKeepLive();
             },
             OnWindowClosePtr
@@ -183,8 +193,34 @@ export function openWebView(arg: WebConfig) {
     });
 
     openWebView(webArgPointer);
+    let webarg = koffi.decode(webArgPointer, WebArg);
+    let windowId: number = webarg.windowid;
+    arg.onwindowOpenned({
+        close: () => {
+            const closeWindow = lib.func("closeWindow", "void", ["int"]);
+            closeWindow(windowId);
+        },
+        move: (l, t) => {
+            const moveWindow = lib.func("moveWindow", "void", ["int", "int", "int"]);
+            moveWindow(windowId, l, t);
+        },
+        resize: (width, height) => {
+            const resizeW = lib.func("resizeWindow", "void", ["int", "int", "int"]);
+            resizeW(windowId, width, height);
+        },
+        maximize: (isMax) => {
+            const maximize = lib.func("maximize", "void", ["int", "bool" ]);
+            maximize(windowId, isMax);
+        },
+        
+        minimize: (isMin) => {
+            const minimize = lib.func("minimize", "void", ["int", "bool" ]);
+            minimize(windowId, isMin);
+        }
+    })
+
     return promise;
 
-} 
+}
 
 

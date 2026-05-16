@@ -30,6 +30,7 @@ pub struct WebArg {
     pub is_kiosk: bool,
     pub is_maximize: bool,
     pub is_debug: bool,
+    pub windowid : c_int,
 }
 
 pub fn get_string_from_cpointer(strptr: *const c_char) -> String {
