@@ -41,12 +41,12 @@ $ffi = FFI::cdef("
 
         typedef void (*SendResponse)(ResourceResponse *, void*  );
    typedef struct {
-        char* url;
-        char* wclassname;
+        char* url; 
         char* title;
         char* custom_protocol;
 
         void (*on_custom_protocol)(ResourceRequest*,SendResponse,void* );
+        void (*on_window_closed)();
 
         int width;
         int height;
@@ -57,8 +57,7 @@ $ffi = FFI::cdef("
 
     } WebArg;
 
-    void openWebView(WebArg* webconfig);  
-    size_t get_active_window_count();  
+    void openWebView(WebArg* webconfig);   
 ", 
 "../../rust_webview_core/target/release/webview_node.dll"); // Sesuaikan path ke file DLL kamu
 
@@ -92,9 +91,10 @@ $callback = function($request, $sendResponse,$cpointer) use ($ffi) {
     };
 $arg =  $ffi->new("WebArg"); 
   
+$iswondowClosed = false;
+
 $arg->custom_protocol = createCBuffer("myprot");
-$arg->url =  createCBuffer("myprot://geegegdssssssssssssssssdd");
-$arg->wclassname = createCBuffer("iniclassnamenyadeh");
+$arg->url =  createCBuffer("myprot://local.localhost/"); 
 $arg->width = 600;
 $arg->height = 600;
 $arg->is_maximize = false;
@@ -102,16 +102,22 @@ $arg->title =  createCBuffer("ini judul nyo PHP");
 $arg->is_kiosk = false;
 $arg->is_debug = true;
 $arg->on_custom_protocol = $callback;  
+$arg->on_window_closed = function()use (&$iswondowClosed){
+    $iswondowClosed = true;
+    echo "\n\n\nwindow closed\n\n";
+};
+
+
 
 $ffi->openWebView(FFI::addr($arg));  
 echo "\n\nDiprintDIPHP : " . FFI::string($arg->url) . "\n\n";
 
 while (true) {
     sleep(1);
-    echo "waiting\n";
-    $windowcount = $ffi->get_active_window_count();
-    if($windowcount == 0){
+    echo "waiting\n" ; 
+    if($iswondowClosed){
         echo "all windows has closed";
+        sleep(1);
         break;
     }
 }
