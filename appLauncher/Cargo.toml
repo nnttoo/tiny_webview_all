@@ -3,14 +3,18 @@ name = "appLauncher"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies] 
-# Kita gunakan tao untuk manajemen window 
+[dependencies]
 tao = "0.35.0"
+image = "0.25"
+softbuffer = "0.4"
 
-# Kita gunakan windows crate hanya untuk fungsi GDI+ dan menggambar
-windows = { version = "0.58", features = [
-    "Win32_Graphics_GdiPlus",
-    "Win32_Graphics_Gdi",
-    "Win32_Foundation",
-    "Win32_UI_WindowsAndMessaging"
-] }
+
+[build-dependencies]
+winres = "0.1" # <-- Tambahkan ini
+
+[profile.release]
+opt-level = "z"     # Mengoptimalkan ukuran biner (size), bukan kecepatan (speed)
+lto = true          # Nyalakan Link Time Optimization (membuang kode mati antar-crate)
+codegen-units = 1   # Mengurangi paralelisasi kompilasi demi optimasi biner yang lebih padat
+panic = "abort"     # Menghapus stack unwinding saat panic (menghemat banyak ruang)
+strip = true        # Menghapus semua simbol debug dan tabel nama dari file .exe hasil kompilasi

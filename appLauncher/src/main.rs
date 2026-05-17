@@ -1,102 +1,98 @@
 #![windows_subsystem = "windows"]
-use std::ffi::c_void;
-use tao::{
-    event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
-}; 
-use windows::{
-    Win32::Foundation::HWND,
-    core::{HSTRING, PCWSTR},
-};
-// 1. Pindahkan GetClientRect ke WindowsAndMessaging
-use windows::Win32::Graphics::Gdi::{BeginPaint, EndPaint, PAINTSTRUCT};
-use windows::Win32::Graphics::GdiPlus::{
-    GdipCreateFromHDC, GdipDeleteGraphics, GdipDrawImageRectI, GdipLoadImageFromFile,
-    GdiplusShutdown, GdiplusStartup, GdiplusStartupInput, GpGraphics, GpImage, Status,
-};
-use windows::Win32::UI::WindowsAndMessaging::GetClientRect;
+
+use std::env;
+use std::num::NonZeroU32;
+use std::path::Path;
+use tao::event_loop::{ControlFlow, EventLoop};
+use tao::window::Icon;
+use tao::window::WindowBuilder; 
+
+fn load_window_icon(path: &Path) -> Option<Icon> {
+    if let Ok(img) = image::open(path) {
+        let img_rgba = img.to_rgba8();
+        let (width, height) = img_rgba.dimensions();
+        let raw_data = img_rgba.into_raw();
+        
+        Icon::from_rgba(raw_data, width, height).ok()
+    } else {
+        None
+    }
+}
 
 fn main() {
-    // 1. Inisialisasi GDI+
-    let mut gdiplus_token: usize = 0;
-    let startup_input = GdiplusStartupInput {
-        GdiplusVersion: 1,
-        ..Default::default()
-    };
-    unsafe {
-        let _ = GdiplusStartup(&mut gdiplus_token, &startup_input, std::ptr::null_mut());
-    }
+     
 
-    // 2. Buat Event Loop dan Window Frameless dengan TAO
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new(); 
+ 
+    let mut exe_path = env::current_exe().expect("Gagal mendapatkan lokasi file EXE"); 
+    exe_path.pop();  
+    let splash_path = exe_path.join("splash.png");
+    let icon_path = exe_path.join("icon.png");
+
+    let img = image::open(&splash_path)
+        .expect("Gagal membuka file PNG")
+        .to_rgba8();
+    let (width, height) = img.dimensions(); 
     let window = WindowBuilder::new()
-        .with_title("TAO Frameless PNG")
-        .with_decorations(false)
-        .with_inner_size(tao::dpi::LogicalSize::new(400.0, 400.0))
-        .with_transparent(true)
+        .with_title("Splash Screen")
+        .with_window_icon(load_window_icon(&icon_path))
+        .with_inner_size(tao::dpi::PhysicalSize::new(width, height))
+        .with_decorations(false) // Frameless
+        .with_resizable(false)
         .build(&event_loop)
         .unwrap();
 
-    use tao::platform::windows::WindowExtWindows;
-    let hwnd = HWND(window.hwnd() as *mut c_void);
+    // Tembak redraw pertama kali saat aplikasi dibuka
+    window.request_redraw();
 
-    let mut exe_path = std::env::current_exe().expect("Gagal mendapatkan path EXE");
-    exe_path.pop();
-    let img_path = exe_path.join("splash.png");
-    let path_hstring = HSTRING::from(img_path.to_string_lossy().as_ref());
-    let path_pcwstr: PCWSTR = windows::core::PCWSTR(path_hstring.as_ptr());
-    let mut image_ptr: *mut GpImage = std::ptr::null_mut();
-    unsafe {
-        let _ = GdipLoadImageFromFile(path_pcwstr, &mut image_ptr);
-    }
-
-    // 4. Masuk ke Event Loop Aplikasi
+    // 3. Jalankan Event Loop
+    // Hanya memindahkan `window` dan `img` ke dalam closure
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
         match event {
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::CloseRequested => {
-                    unsafe {
-                        GdiplusShutdown(gdiplus_token);
+            tao::event::Event::RedrawRequested(_) => {
+                // KUNCI PERBAIKAN: Buat context dan surface DI DALAM loop saat event redraw dipanggil.
+                // Dengan begini, lifetime context & surface hanya hidup di dalam scope ini
+                // dan meminjam `&window` dengan aman.
+                let context = softbuffer::Context::new(&window).unwrap();
+                let mut surface = softbuffer::Surface::new(&context, &window).unwrap();
+
+                surface
+                    .resize(
+                        NonZeroU32::new(width).unwrap(),
+                        NonZeroU32::new(height).unwrap(),
+                    )
+                    .unwrap();
+
+                let mut buffer = surface.buffer_mut().unwrap();
+
+                // Salin pixel dari gambar PNG ke buffer
+                for y in 0..height {
+                    for x in 0..width {
+                        let pixel = img.get_pixel(x, y);
+                        let r = pixel[0] as u32;
+                        let g = pixel[1] as u32;
+                        let b = pixel[2] as u32;
+                        let a = pixel[3] as u32;
+
+                        let index = (y * width + x) as usize;
+
+                        // Format Softbuffer: 0xAARRGGBB
+                        buffer[index] = (a << 24) | (r << 16) | (g << 8) | b;
                     }
+                }
+
+                // Render ke layar
+                buffer.present().unwrap();
+            }
+            tao::event::Event::WindowEvent { event, .. } => match event {
+                tao::event::WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
                 }
-                _ => (),
+                _ => {}
             },
-
-            Event::RedrawRequested(_) => {
-                unsafe {
-                    let mut ps = PAINTSTRUCT::default();
-                    let hdc = BeginPaint(hwnd, &mut ps);
-
-                    if !hdc.is_invalid() && !image_ptr.is_null() {
-                        let mut graphics: *mut GpGraphics = std::ptr::null_mut();
-
-                        // 2. PERBAIKAN: Status sukses GDI+ diwakili oleh nilai 0 / Status(0)
-                        if GdipCreateFromHDC(hdc, &mut graphics) == Status(0) {
-                            let mut rc = windows::Win32::Foundation::RECT::default();
-                            let _ = GetClientRect(hwnd, &mut rc);
-
-                            let width = rc.right - rc.left;
-                            let height = rc.bottom - rc.top;
-
-                            let _ = GdipDrawImageRectI(
-                                graphics, image_ptr, rc.left, rc.top, width, height,
-                            );
-
-                            let _ = GdipDeleteGraphics(graphics);
-                        }
-                    }
-                    EndPaint(hwnd, &ps);
-                }
-            }
-
-            Event::MainEventsCleared => {
-                window.request_redraw();
-            }
-            _ => (),
+            _ => {}
         }
     });
 }
