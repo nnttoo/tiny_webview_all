@@ -71,13 +71,29 @@ function intButton() {
         });
     }
 
-     btn("#min").onclick = () => { 
+    btn("#min").onclick = () => {
         reqApi({
             cmd: "minimize",
             params: true
         });
     }
-    
+    btn("#openfdialog").onclick = async () => {
+        let apiresult = await reqApi({
+            cmd: "openfile",
+            params: true
+        });
+
+        ipt("#ipt_dialog").value = apiresult;
+    }
+    btn("#openfolder").onclick = async () => {
+        let apiresult = await reqApi({
+            cmd: "openfolder",
+            params: true
+        });
+
+        ipt("#ipt_dialog_folder").value = apiresult;
+    }
+
 }
 
 intButton();

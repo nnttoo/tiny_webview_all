@@ -1,5 +1,5 @@
 import path from "node:path";
-import { createFileHandler, CustomProtocolRequest, CustomProtocolResponse, openWebView, TsOnlyWindowControl } from "tiny_webview/node"
+import { createFileHandler, CustomProtocolRequest, CustomProtocolResponse, openFileSelector, openFolderSelector, openWebView, TsOnlyWindowControl } from "tiny_webview/node"
 export interface FParam {
     cmd: string,
     params: any
@@ -11,12 +11,12 @@ function openDllWebView() {
     const fileHandler = createFileHandler(htmlPath);
     let windowController: TsOnlyWindowControl;
 
-    function apiHandler(p: CustomProtocolRequest) {
+    async function apiHandler(p: CustomProtocolRequest) {
         if (p.method != "POST") return null;
-        
+
         let url = new URL(p.uri);
 
-        if(url.pathname != "/controlwindow") return;
+        if (url.pathname != "/controlwindow") return;
 
         let body = p.body.toString();
         let bodyObj = JSON.parse(body) as FParam;
@@ -52,6 +52,23 @@ function openDllWebView() {
             return;
         }
 
+        if (bodyObj.cmd == "openfile") {
+            let filepath = await openFileSelector({
+                file_types: [
+                    {
+                        ext: ['md', "txt", "zip"],
+                        file_name: "Text File"
+                    }
+                ],
+                root_dir: "D:\\hhhhhhhhhhhhhhhhhhh"
+            });
+            return filepath;
+        }
+
+        if (bodyObj.cmd == "openfolder") {
+            let filepath = await openFolderSelector("D:\\hhhhhhhhhhhhhhhhhhh");
+            return filepath;
+        }
 
     }
 
@@ -68,7 +85,12 @@ function openDllWebView() {
             let result = await fileHandler(p);
 
             if (result.status == 404) {
-                let apiResult = apiHandler(p);
+                let apiResult = await apiHandler(p);
+                if (apiResult != null) {
+                    result.body = Buffer.from(apiResult);
+                    result.content_type = "text/plain"
+                    result.status = 200;
+                }
 
             }
 

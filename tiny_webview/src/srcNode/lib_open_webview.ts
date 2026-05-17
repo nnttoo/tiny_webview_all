@@ -1,9 +1,7 @@
-import path from "path";
+
 import koffi from 'koffi';
-import { createCBuffer, sleep } from "./util/utils";
+import { loadLib } from './lib_loader';
 
-
-let lib: koffi.IKoffiLib | null = null;
 const ResourceRequest = koffi.struct('ResourceRequest', {
     uri: 'char *',
     method: 'char *',
@@ -27,25 +25,6 @@ const OnWindowClosePtr = koffi.pointer(
     koffi.proto("void OnWindowClose()")
 )
 
-
-function loadLib() {
-
-    if (lib != null) return lib;
-
-
-
-    let pathRust_webview_core = path.join(__dirname, "../../../rust_webview_core/");
-    let pathDllFile = path.join(pathRust_webview_core, "target/release/webview_node.dll");
-
-
-    lib = koffi.load(pathDllFile);
-
-
-    // const dialogFile = lib.func("select_file", "void", ["char*"]);
-    // const get_active_window_count = lib.func("get_active_window_count", "size_t", []);
-
-    return lib;
-}
 
 export interface CustomProtocolResponse {
     body: Buffer<ArrayBuffer>,
@@ -222,5 +201,4 @@ export function openWebView(arg: TsOnlyWebConfig) {
     return promise;
 
 }
-
 

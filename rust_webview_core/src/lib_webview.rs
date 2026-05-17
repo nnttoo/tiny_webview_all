@@ -247,7 +247,7 @@ pub extern "C" fn resizeWindow(windowid: c_int, width: c_int, height: c_int) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn maximize(windowid: c_int, ismaximize : bool) {
+pub extern "C" fn maximize(windowid: c_int, ismaximize: bool) {
     let window_id_i32: i32 = windowid;
     let Some(proxy) = PROXY.get() else {
         return;
@@ -263,7 +263,7 @@ pub extern "C" fn maximize(windowid: c_int, ismaximize : bool) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn minimize(windowid: c_int, isminimize : bool) {
+pub extern "C" fn minimize(windowid: c_int, isminimize: bool) {
     let window_id_i32: i32 = windowid;
     let Some(proxy) = PROXY.get() else {
         return;

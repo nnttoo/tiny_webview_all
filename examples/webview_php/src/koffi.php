@@ -54,6 +54,7 @@ $ffi = FFI::cdef("
         bool is_kiosk;
         bool is_maximize;
         bool is_debug;
+        int windowid;
 
     } WebArg;
 
@@ -110,7 +111,7 @@ $arg->on_window_closed = function()use (&$iswondowClosed){
 
 
 $ffi->openWebView(FFI::addr($arg));  
-echo "\n\nDiprintDIPHP : " . FFI::string($arg->url) . "\n\n";
+echo "\n\nDiprintDIPHP : " .  $arg->windowid . "\n\n";
 
 while (true) {
     sleep(1);

@@ -1,7 +1,7 @@
-import path from "node:path";
-import { CustomProtocolRequest, CustomProtocolResponse } from "./libloader";
+import path from "node:path"; 
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { CustomProtocolRequest, CustomProtocolResponse } from "./lib_open_webview";
 
 function getPathFromUrl(urlstring: string) {
     let urlObj = new URL(urlstring);
