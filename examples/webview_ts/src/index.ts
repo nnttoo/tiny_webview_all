@@ -60,13 +60,13 @@ function openDllWebView() {
                         file_name: "Text File"
                     }
                 ],
-                root_dir: "D:\\hhhhhhhhhhhhhhhhhhh"
+                root_dir: "D:\\"
             });
             return filepath;
         }
 
         if (bodyObj.cmd == "openfolder") {
-            let filepath = await openFolderSelector("D:\\hhhhhhhhhhhhhhhhhhh");
+            let filepath = await openFolderSelector("D:");
             return filepath;
         }
 
@@ -76,7 +76,7 @@ function openDllWebView() {
         url: "mytest://myapp.local/index.html",
         customProtocol: "mytest",
         height: 500,
-        width: 800,
+        width: 1000,
         isDebug: true,
         isKisok: false,
         isMaximize: false,
