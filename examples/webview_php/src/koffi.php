@@ -1,14 +1,17 @@
-<?php
+<?php 
 
-function createCBuffer($string) {
-    $len = strlen($string); 
+function createCBuffer(string $string) { 
+    $len = strlen($string);  
+    
+    /** @disregard   */
     $buffer = FFI::new("char[" . ($len + 1) . "]", false); 
     FFI::memcpy($buffer, $string, $len); 
     return   $buffer;
 }
 
-function createCbyteArray($bodystring){
+function createCbyteArray(string $bodystring){
     $length = strlen($bodystring);
+    /** @disregard   */
     $cBody = FFI::new("unsigned char[$length]", false);   
     FFI::memcpy($cBody, $bodystring, $length);
 
@@ -110,6 +113,7 @@ $arg->on_window_closed = function()use (&$iswondowClosed){
 
 
 
+/** @disregard   */
 $ffi->openWebView(FFI::addr($arg));  
 echo "\n\nDiprintDIPHP : " .  $arg->windowid . "\n\n";
 
