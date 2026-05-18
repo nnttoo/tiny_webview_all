@@ -82,10 +82,7 @@ fn main() {
         *control_flow = ControlFlow::Wait;
 
         match event {
-            tao::event::Event::RedrawRequested(_) => {
-                // KUNCI PERBAIKAN: Buat context dan surface DI DALAM loop saat event redraw dipanggil.
-                // Dengan begini, lifetime context & surface hanya hidup di dalam scope ini
-                // dan meminjam `&window` dengan aman.
+            tao::event::Event::RedrawRequested(_) => { 
                 let context = softbuffer::Context::new(&window).unwrap();
                 let mut surface = softbuffer::Surface::new(&context, &window).unwrap();
 
