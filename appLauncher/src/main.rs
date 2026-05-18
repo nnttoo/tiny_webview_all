@@ -1,42 +1,73 @@
 #![windows_subsystem = "windows"]
 
+use image::{ImageBuffer, Rgba};
 use std::env;
 use std::num::NonZeroU32;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tao::event_loop::{ControlFlow, EventLoop};
 use tao::window::Icon;
-use tao::window::WindowBuilder; 
+use tao::window::WindowBuilder;
 
-fn load_window_icon(path: &Path) -> Option<Icon> {
+fn load_window_icon(exe_path: &Path) -> Option<Icon> {
+    let path = exe_path.join("icon.png");
+
     if let Ok(img) = image::open(path) {
         let img_rgba = img.to_rgba8();
         let (width, height) = img_rgba.dimensions();
         let raw_data = img_rgba.into_raw();
-        
+
         Icon::from_rgba(raw_data, width, height).ok()
     } else {
         None
     }
 }
 
+fn get_exe_folder() -> PathBuf {
+    let mut path_def = PathBuf::new();
+    let exe_path = env::current_exe();
+
+    if let Ok(exe_path_ok) = exe_path {
+        path_def = exe_path_ok;
+        path_def.pop();
+    };
+
+    path_def
+}
+
+fn get_img_splash(path: &Path) -> Option<(ImageBuffer<Rgba<u8>, Vec<u8>>, u32, u32)> {
+    let splash_path = path.join("splash.png");
+
+    let img = image::open(&splash_path);
+    let Ok(img_unwrap) = img else {
+        return None;
+    };
+
+    let img_rgba = img_unwrap.to_rgba8();
+    let (width, height) = img_rgba.dimensions();
+    Some((img_rgba, width, height))
+}
+
 fn main() {
-     
+    let event_loop = EventLoop::new();
 
-    let event_loop = EventLoop::new(); 
- 
-    let mut exe_path = env::current_exe().expect("Gagal mendapatkan lokasi file EXE"); 
-    exe_path.pop();  
-    let splash_path = exe_path.join("splash.png");
-    let icon_path = exe_path.join("icon.png");
+    let exe_path = get_exe_folder();
 
-    let img = image::open(&splash_path)
-        .expect("Gagal membuka file PNG")
-        .to_rgba8();
-    let (width, height) = img.dimensions(); 
+    
+
+    let mut splash_img  = None;
+    let mut splash_width: u32 = 300;
+    let mut splash_height: u32 = 300;
+
+    if let Some((img, w, h)) = get_img_splash(&exe_path) {
+        splash_width = w;
+        splash_height = h;
+        splash_img = Some(img);
+    }
+
     let window = WindowBuilder::new()
         .with_title("Splash Screen")
-        .with_window_icon(load_window_icon(&icon_path))
-        .with_inner_size(tao::dpi::PhysicalSize::new(width, height))
+        .with_window_icon(load_window_icon(&exe_path))
+        .with_inner_size(tao::dpi::PhysicalSize::new(splash_width, splash_height))
         .with_decorations(false) // Frameless
         .with_resizable(false)
         .build(&event_loop)
@@ -60,31 +91,30 @@ fn main() {
 
                 surface
                     .resize(
-                        NonZeroU32::new(width).unwrap(),
-                        NonZeroU32::new(height).unwrap(),
+                        NonZeroU32::new(splash_width).unwrap(),
+                        NonZeroU32::new(splash_height).unwrap(),
                     )
                     .unwrap();
 
-                let mut buffer = surface.buffer_mut().unwrap();
+                if let Some(img) = &splash_img {
+                    let mut buffer = surface.buffer_mut().unwrap();
+                    for y in 0..splash_width {
+                        for x in 0..splash_height {
+                            let pixel = img.get_pixel(x, y);
+                            let r = pixel[0] as u32;
+                            let g = pixel[1] as u32;
+                            let b = pixel[2] as u32;
+                            let a = pixel[3] as u32;
 
-                // Salin pixel dari gambar PNG ke buffer
-                for y in 0..height {
-                    for x in 0..width {
-                        let pixel = img.get_pixel(x, y);
-                        let r = pixel[0] as u32;
-                        let g = pixel[1] as u32;
-                        let b = pixel[2] as u32;
-                        let a = pixel[3] as u32;
+                            let index = (y * splash_width + x) as usize;
 
-                        let index = (y * width + x) as usize;
-
-                        // Format Softbuffer: 0xAARRGGBB
-                        buffer[index] = (a << 24) | (r << 16) | (g << 8) | b;
+                            // Format Softbuffer: 0xAARRGGBB
+                            buffer[index] = (a << 24) | (r << 16) | (g << 8) | b;
+                        }
                     }
-                }
 
-                // Render ke layar
-                buffer.present().unwrap();
+                    buffer.present().unwrap();
+                }
             }
             tao::event::Event::WindowEvent { event, .. } => match event {
                 tao::event::WindowEvent::CloseRequested => {
