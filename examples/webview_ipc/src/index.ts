@@ -21,9 +21,8 @@ async function run() {
         is_always_ontop : false,
         is_fullscreen : false,
         title: "My Web Title",
-
-
-        url: "https://harycodeworks.com"
+        url: "https://harycodeworks.com",
+        ipc_server : "mynodeipc"
     });
  
     let hitung = 0;

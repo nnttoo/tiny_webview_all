@@ -2,7 +2,7 @@ use std::sync::{Arc, mpsc};
 
 use serde::{Deserialize, Serialize};
 use tao::{
-    event_loop::{ControlFlow, EventLoopWindowTarget},
+    event_loop::{ EventLoopWindowTarget},
     window::{Fullscreen, WindowBuilder},
 };
 use wry::{PermissionResponse, WebViewBuilder, WebViewBuilderExtWindows};
@@ -21,6 +21,7 @@ struct BrowserConfig {
     pub is_debug: bool,
     pub is_always_ontop: bool,
     pub is_fullscreen: bool,
+    pub ipc_server :  String
 }
 
 pub fn open_web(

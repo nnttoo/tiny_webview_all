@@ -11,7 +11,4 @@ wry = { git = "https://github.com/nnttoo/wry", branch = "feat/permission-handler
 serde = { version = "1", features = ["derive"] }
 interprocess = { version = "2.2", features = ["tokio"] }
 tokio = { version = "1.38", features = ["full"] }
-rmp-serde = "1.3.1"
-axum = "0.7"
-async-stream = "0.3"
-hyper-util = { version = "0.1", features = ["server-auto", "tokio"] }
+rmp-serde = "1.3.1" 

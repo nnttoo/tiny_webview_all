@@ -2,13 +2,19 @@
 import { decode, encode } from '@msgpack/msgpack';
 import * as net from 'node:net';
 
+export function createIpcPipeName(ipcpath: string) {
+    const PIPE_PATH: string = process.platform === 'win32'
+        ? '\\\\.\\pipe\\' + ipcpath
+        : '\0' + ipcpath;
+    return PIPE_PATH;
+}
+
+
 export function sendToIpc(ipcpath: string, data: Uint8Array) {
 
     return new Promise<Uint8Array>((resolve, onErr) => {
-        const PIPE_PATH: string = process.platform === 'win32'
-            ? '\\\\.\\pipe\\' + ipcpath
-            : '\0' + ipcpath;
 
+        const PIPE_PATH = createIpcPipeName(ipcpath);
         const client: net.Socket = net.createConnection(PIPE_PATH, (): void => {
             console.log('✅ Terhubung ke Server Rust!');
             client.write(data);
@@ -55,7 +61,7 @@ export interface CmdResponse {
     message: string;
 }
 
-let ipcpath = process.env.IPCNAME? process.env.IPCNAME : "err" ;
+let ipcpath = process.env.IPCNAME ? process.env.IPCNAME : "err";
 
 export async function sendIpcCmd(data: CmdResponse) {
     let arrData = encode(data);

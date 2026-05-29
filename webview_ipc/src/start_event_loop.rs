@@ -1,4 +1,4 @@
-use std::sync::{Arc, mpsc};
+use std::sync::{  mpsc};
 
 use tao::{
     event::{Event, WindowEvent},
@@ -17,10 +17,8 @@ pub fn create_event_loop() -> (AppMyContextArc, JoinHandle<()>) {
             .with_any_thread(true)
             .build();
 
-        let my_app_context = AppMyContext::new(event_loop.create_proxy());
-        let my_app_arc = Arc::new(my_app_context);
-
-        tx.send(my_app_arc.clone()).unwrap();
+        let my_app_context = AppMyContext::new(event_loop.create_proxy()); 
+        _=tx.send(my_app_context.clone());
 
         event_loop.run(move |event, elwt, control_flow| match event {
             Event::UserEvent(CustomEvent::Execute(myfun)) => {
@@ -37,7 +35,7 @@ pub fn create_event_loop() -> (AppMyContextArc, JoinHandle<()>) {
                 ..
             } => {
                 println!("try to close window");
-                if my_app_arc.webview_remove(window_id) {
+                if my_app_context.webview_remove(window_id) {
                     *control_flow = ControlFlow::Exit;
                 } 
             }

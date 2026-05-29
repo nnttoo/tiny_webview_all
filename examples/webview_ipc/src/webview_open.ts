@@ -11,6 +11,7 @@ export interface WebViewConfig {
     is_resizable : boolean,
     is_fullscreen : boolean,
     is_always_ontop : boolean,
+    ipc_server : string,
 }
 
 export async function openWebview(config: WebViewConfig) {

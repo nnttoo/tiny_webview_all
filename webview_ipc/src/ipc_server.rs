@@ -1,5 +1,4 @@
-use std::{
-    sync::Arc,
+use std::{ 
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -13,7 +12,13 @@ use interprocess::local_socket::{
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use crate::{app_ctx::{AppMyContext, AppMyContextArc}, open_web::open_web};
+use crate::{app_ctx::AppMyContextArc, open_web::open_web};
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct CmdMessage {
+    pub cmd: String,
+    pub message: String,
+}
 
 pub fn create_ipc_name() -> String {
     let nanos = SystemTime::now()
@@ -27,59 +32,53 @@ pub fn create_ipc_name() -> String {
     random_string
 }
 
-pub struct ClientHandler {
-    pub app_ctx: Arc<AppMyContext>,
+async fn handle_client(mut stream: Stream, app_ctx: AppMyContextArc) {
+    let mut buffer = vec![0; 1024 * 1024];
+    let Ok(n) = stream.read(&mut buffer).await else {
+        return;
+    };
+
+    let Ok(data_from_client) = rmp_serde::from_slice::<CmdMessage>(&buffer[..n]) else {
+        return;
+    };
+    let response = handle_cmd(data_from_client, app_ctx).await;
+    _ = stream.write_all(&response).await;
+    _ = stream.flush().await;
 }
 
-impl ClientHandler {
-    async fn handle_client(&mut self, mut stream: Stream) {
-        let mut buffer = vec![0; 1024 * 1024];
-        let Ok(n) = stream.read(&mut buffer).await else {
-            return;
-        };
+async fn handle_cmd(client_msg: CmdMessage, app_ctx: AppMyContextArc) -> Vec<u8> {
+    let cresponse = match client_msg.cmd.as_str() {
+        "openweb" => {
+            let configstr = client_msg.message;
+            let windowid = match open_web(app_ctx.clone(), configstr) {
+                Ok(wid) => wid,
+                _ => 0,
+            };
 
-        let Ok(data_from_client) = rmp_serde::from_slice::<CmdMessage>(&buffer[..n]) else {
-            return;
-        };
-        let response = self.handle_cmd(data_from_client).await;
-        _ = stream.write_all(&response).await;
-        _ = stream.flush().await;
-    }
-
-    async fn handle_cmd(&mut self, client_msg: CmdMessage) -> Vec<u8> {
-        let cresponse = match client_msg.cmd.as_str() {
-            "openweb" => {
-                let configstr = client_msg.message;
-                let windowid = match open_web(self.app_ctx.clone(), configstr) {
-                    Ok(wid) => wid,
-                    _ => 0,
-                };
-
-                CmdMessage {
-                    cmd: "".into(),
-                    message: format!("{}", windowid),
-                }
+            CmdMessage {
+                cmd: "".into(),
+                message: format!("{}", windowid),
             }
-            "closeweb" => {
-                if let Ok(wid) = client_msg.message.parse::<u32>() {
-                    self.app_ctx.webview_close(wid);
-                }
-
-                CmdMessage {
-                    cmd: "ini test".into(),
-                    message: "ini msg dari rust test dulu".into(),
-                }
-            }
-            _ => CmdMessage {
-                cmd: "ini test".into(),
-                message: "ini msg dari rust test dulu".into(),
-            },
-        };
-
-        match rmp_serde::to_vec_named(&cresponse) {
-            Ok(data) => data,
-            _ => b"".to_vec(),
         }
+        "closeweb" => {
+            if let Ok(wid) = client_msg.message.parse::<u32>() {
+                app_ctx.webview_close(wid);
+            }
+
+            CmdMessage {
+                cmd: "".into(),
+                message: "".into(),
+            }
+        }
+        _ => CmdMessage {
+            cmd: "".into(),
+            message: "Command is empty".into(),
+        },
+    };
+
+    match rmp_serde::to_vec_named(&cresponse) {
+        Ok(data) => data,
+        _ => b"".to_vec(),
     }
 }
 
@@ -93,22 +92,14 @@ pub async fn create_ipc_server(app_ctx: AppMyContextArc) {
         return;
     };
 
-    println!("Server IPC berjalan lewat library interprocess 2.x..."); 
+    println!("Server IPC berjalan lewat library interprocess 2.x...");
     loop {
         let Ok(stream) = listener.accept().await else {
             continue;
         };
-
-        let app_arc_clone = app_ctx.clone();
+        let app_clone = app_ctx.clone();
         tokio::spawn(async move {
-            let mut client_handler = ClientHandler { app_ctx: app_arc_clone };
-            client_handler.handle_client(stream).await;
+            handle_client(stream, app_clone).await;
         });
     }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct CmdMessage {
-    pub cmd: String,
-    pub message: String,
 }

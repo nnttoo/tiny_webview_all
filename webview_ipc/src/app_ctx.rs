@@ -1,11 +1,11 @@
 use std::{
     collections::HashMap,
     sync::{
-        Arc,  
-        atomic::{ AtomicU32, Ordering},
+        Arc,
+        atomic::{AtomicU32, Ordering},
     },
 };
- 
+
 use tao::{
     event_loop::{EventLoopProxy, EventLoopWindowTarget},
     window::{Window, WindowId},
@@ -36,8 +36,7 @@ impl UnsafeWindowMap {
         }
     }
 }
-
-type MyWindowMapMutexArc = Arc<RwLock<MyWindowMap>>;
+ 
 
 pub enum CustomEvent {
     Execute(BoxedCommand),
@@ -51,18 +50,18 @@ fn get_id_generator() -> u32 {
 
 //#[derive(Clone)]
 pub struct AppMyContext {
-    hash_map: MyWindowMapMutexArc,
-    pub even_loop_poxy: Arc<EventLoopProxy<CustomEvent>>,
-    pub ipc_name : String
+    hash_map: RwLock<MyWindowMap>,
+    pub even_loop_poxy: EventLoopProxy<CustomEvent>,
+    pub ipc_name: String,
 }
 
 impl AppMyContext {
-    pub fn new(event_loop: EventLoopProxy<CustomEvent>) -> Self {
-        Self {
-            hash_map: Arc::new(RwLock::new(HashMap::new())),
-            even_loop_poxy: Arc::new(event_loop),
-            ipc_name : create_ipc_name()
-        }
+    pub fn new(event_loop: EventLoopProxy<CustomEvent>) -> AppMyContextArc {
+        Arc::new(Self {
+            hash_map: RwLock::new(HashMap::new()),
+            even_loop_poxy: event_loop,
+            ipc_name: create_ipc_name(),
+        })
     }
     pub fn webview_add(&self, webview: WebView, window: Window) -> u32 {
         let Ok(mut hash_map) = self.hash_map.try_write() else {
@@ -120,5 +119,4 @@ impl AppMyContext {
     }
 }
 
-
-pub type  AppMyContextArc = Arc::<AppMyContext>;
+pub type AppMyContextArc = Arc<AppMyContext>;
