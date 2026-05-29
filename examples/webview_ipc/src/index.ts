@@ -1,6 +1,6 @@
+import { openWebview } from "./webview_open";
 
-import { encode, decode } from "@msgpack/msgpack";
-import { sendToIpc } from "./send_to_ipc";
+
 
 function sleep(n: number) {
     return new Promise((r, x) => {
@@ -8,22 +8,37 @@ function sleep(n: number) {
     });
 }
 
-export interface CmdResponse {
-    cmd: string;
-    message: string;
-}
-const pesanData: CmdResponse = {
-    cmd: "openweb",
-    message: "Halo dari Node.js TypeScript!",
-};
-const msgpackBytes: Uint8Array = encode(pesanData);
-sendToIpc(msgpackBytes).then(async (data) => {
-    console.log("sudah berhasil" + data.message);
+async function run() {  
+    
+    
+    let web = await openWebview({
+        height: 600,
+        width: 1000,
+        is_debug: true,
+        is_frameless: false,
+        is_maximize: false,
+        is_resizable : true,
+        is_always_ontop : false,
+        is_fullscreen : false,
+        title: "My Web Title",
 
-    await sleep(1000);
-    console.log("close window");
-    sendToIpc(encode({
-        cmd: "closeweb",
-        message: data.message
-    } as CmdResponse))
-})
+
+        url: "https://harycodeworks.com"
+    });
+ 
+    let hitung = 0;
+    while (true){
+        await sleep(1000);
+        hitung++;
+        console.log(hitung);
+
+        if(hitung > 10) {
+            console.log("App Exit from Node");
+            break;
+        }
+    }
+ 
+}
+
+run();
+

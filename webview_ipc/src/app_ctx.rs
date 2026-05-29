@@ -1,17 +1,19 @@
 use std::{
     collections::HashMap,
     sync::{
-        Arc, Mutex,
-        atomic::{AtomicI32, AtomicU32, Ordering},
+        Arc,  
+        atomic::{ AtomicU32, Ordering},
     },
 };
-
-use rfd::MessageDialogResult::No;
+ 
 use tao::{
     event_loop::{EventLoopProxy, EventLoopWindowTarget},
     window::{Window, WindowId},
 };
+use tokio::sync::RwLock;
 use wry::WebView;
+
+use crate::ipc_server::create_ipc_name;
 
 type BoxedCommand = Box<dyn FnOnce(&EventLoopWindowTarget<CustomEvent>) + Send + 'static>;
 
@@ -35,10 +37,11 @@ impl UnsafeWindowMap {
     }
 }
 
-type MyWindowMapMutexArc = Arc<Mutex<MyWindowMap>>;
+type MyWindowMapMutexArc = Arc<RwLock<MyWindowMap>>;
 
 pub enum CustomEvent {
     Execute(BoxedCommand),
+    Exit(),
 }
 
 static ID_GENERATOR: AtomicU32 = AtomicU32::new(10);
@@ -46,21 +49,23 @@ fn get_id_generator() -> u32 {
     ID_GENERATOR.fetch_add(1, Ordering::Relaxed)
 }
 
-#[derive(Clone)]
+//#[derive(Clone)]
 pub struct AppMyContext {
     hash_map: MyWindowMapMutexArc,
     pub even_loop_poxy: Arc<EventLoopProxy<CustomEvent>>,
+    pub ipc_name : String
 }
 
 impl AppMyContext {
     pub fn new(event_loop: EventLoopProxy<CustomEvent>) -> Self {
         Self {
-            hash_map: Arc::new(Mutex::new(HashMap::new())),
+            hash_map: Arc::new(RwLock::new(HashMap::new())),
             even_loop_poxy: Arc::new(event_loop),
+            ipc_name : create_ipc_name()
         }
     }
-    pub fn webview_add(&mut self, webview: WebView, window: Window) -> u32 {
-        let Ok(mut hash_map) = self.hash_map.try_lock() else {
+    pub fn webview_add(&self, webview: WebView, window: Window) -> u32 {
+        let Ok(mut hash_map) = self.hash_map.try_write() else {
             return 0;
         };
 
@@ -72,8 +77,8 @@ impl AppMyContext {
         wind_32id
     }
 
-    pub fn webview_remove(&mut self, windowid: WindowId) -> bool {
-        let Ok(mut hash_map) = self.hash_map.try_lock() else {
+    pub fn webview_remove(&self, windowid: WindowId) -> bool {
+        let Ok(mut hash_map) = self.hash_map.try_write() else {
             return false;
         };
 
@@ -82,8 +87,8 @@ impl AppMyContext {
         isempty
     }
 
-    pub fn webview_close(&mut self, wiid: u32) {
-        let windowid: Option<WindowId> = match self.hash_map.try_lock() {
+    pub fn webview_close(&self, wiid: u32) {
+        let windowid: Option<WindowId> = match self.hash_map.try_read() {
             Ok(hashmap) => {
                 let mut found_key = None;
                 for (key, item) in hashmap.iter() {
@@ -104,4 +109,16 @@ impl AppMyContext {
             _ => {}
         }
     }
+
+    pub fn exit_window(&self) {
+        let Ok(mut hashmap) = self.hash_map.try_write() else {
+            return;
+        };
+
+        hashmap.clear();
+        _ = self.even_loop_poxy.send_event(CustomEvent::Exit());
+    }
 }
+
+
+pub type  AppMyContextArc = Arc::<AppMyContext>;

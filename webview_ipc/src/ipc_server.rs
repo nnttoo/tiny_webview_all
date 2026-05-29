@@ -1,4 +1,7 @@
-use std::sync::mpsc;
+use std::{
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use interprocess::local_socket::{
     GenericNamespaced, // 2. Ubah ke GenericNamespacedName
@@ -8,14 +11,24 @@ use interprocess::local_socket::{
     traits::tokio::Listener as _,
 };
 use serde::{Deserialize, Serialize};
-use tao::{event_loop::EventLoopWindowTarget, window::WindowBuilder};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use wry::{PermissionResponse, WebViewBuilder, WebViewBuilderExtWindows};
 
-use crate::app_ctx::{AppMyContext, CustomEvent};
+use crate::{app_ctx::{AppMyContext, AppMyContextArc}, open_web::open_web};
+
+pub fn create_ipc_name() -> String {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+
+    // Ubah ke bentuk Hexadecimal (String)
+    let random_string = format!("myipc-{:x}", nanos);
+
+    random_string
+}
 
 pub struct ClientHandler {
-    pub app_ctx: AppMyContext,
+    pub app_ctx: Arc<AppMyContext>,
 }
 
 impl ClientHandler {
@@ -25,7 +38,7 @@ impl ClientHandler {
             return;
         };
 
-        let Ok(data_from_client) = rmp_serde::from_slice::<ClientMessage>(&buffer[..n]) else {
+        let Ok(data_from_client) = rmp_serde::from_slice::<CmdMessage>(&buffer[..n]) else {
             return;
         };
         let response = self.handle_cmd(data_from_client).await;
@@ -33,71 +46,31 @@ impl ClientHandler {
         _ = stream.flush().await;
     }
 
-    async fn open_web(&mut self) -> u32 {
-        let mut app_clone = self.app_ctx.clone();
-        let (tx, rx) = mpsc::channel::<u32>();
-
-        let command = Box::new(move |elwt: &EventLoopWindowTarget<CustomEvent>| {
-            let window = WindowBuilder::new()
-                .with_title("Splash Screen")
-                .with_inner_size(tao::dpi::PhysicalSize::new(800, 500))
-                .with_decorations(true) // Frameless
-                .with_resizable(true)
-                .build(&elwt)
-                .unwrap();
-
-            let webview = WebViewBuilder::new()
-                .with_devtools(true)
-                .with_autoplay(true)
-                .with_https_scheme(true)
-                .with_permission_handler(|kind| {
-                    println!("Otomatis mengizinkan: {:?}", kind);
-                    PermissionResponse::Allow
-                })
-                .with_url("https://google.com");
-
-            let mywebview = webview.build(&window);
-            let Ok(mywebview_un) = mywebview else {
-                return;
-            };
-
-            let winid = app_clone.webview_add(mywebview_un, window);
-            _ = tx.send(winid);
-        });
-
-        _ = self
-            .app_ctx
-            .even_loop_poxy
-            .send_event(CustomEvent::Execute(command));
-
-        let Ok(windid) = rx.recv() else {
-            return 0;
-        };
-
-        windid
-    }
-
-    async fn handle_cmd(&mut self, client_msg: ClientMessage) -> Vec<u8> {
+    async fn handle_cmd(&mut self, client_msg: CmdMessage) -> Vec<u8> {
         let cresponse = match client_msg.cmd.as_str() {
             "openweb" => {
-                let windowid = self.open_web().await;
-                ClientMessage {
+                let configstr = client_msg.message;
+                let windowid = match open_web(self.app_ctx.clone(), configstr) {
+                    Ok(wid) => wid,
+                    _ => 0,
+                };
+
+                CmdMessage {
                     cmd: "".into(),
                     message: format!("{}", windowid),
                 }
             }
             "closeweb" => {
-                if let Ok(wid) = client_msg.message.parse::<u32>(){
+                if let Ok(wid) = client_msg.message.parse::<u32>() {
                     self.app_ctx.webview_close(wid);
                 }
-                
 
-                ClientMessage {
+                CmdMessage {
                     cmd: "ini test".into(),
                     message: "ini msg dari rust test dulu".into(),
                 }
             }
-            _ => ClientMessage {
+            _ => CmdMessage {
                 cmd: "ini test".into(),
                 message: "ini msg dari rust test dulu".into(),
             },
@@ -110,8 +83,9 @@ impl ClientHandler {
     }
 }
 
-pub async fn create_ipc_server(app_ctx: AppMyContext) {
-    let Ok(server_name) = "my-ipc".to_ns_name::<GenericNamespaced>() else {
+pub async fn create_ipc_server(app_ctx: AppMyContextArc) {
+    let ipcname = &app_ctx.ipc_name;
+    let Ok(server_name) = ipcname.to_string().to_ns_name::<GenericNamespaced>() else {
         return;
     };
 
@@ -119,23 +93,22 @@ pub async fn create_ipc_server(app_ctx: AppMyContext) {
         return;
     };
 
-    println!("Server IPC berjalan lewat library interprocess 2.x...");
-
+    println!("Server IPC berjalan lewat library interprocess 2.x..."); 
     loop {
         let Ok(stream) = listener.accept().await else {
             continue;
         };
 
-        let app_clone = app_ctx.clone();
+        let app_arc_clone = app_ctx.clone();
         tokio::spawn(async move {
-            let mut client_handler = ClientHandler { app_ctx: app_clone };
+            let mut client_handler = ClientHandler { app_ctx: app_arc_clone };
             client_handler.handle_client(stream).await;
         });
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-struct ClientMessage {
+struct CmdMessage {
     pub cmd: String,
     pub message: String,
 }

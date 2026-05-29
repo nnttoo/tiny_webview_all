@@ -1,15 +1,14 @@
 
-import { decode } from '@msgpack/msgpack'; 
+import { decode, encode } from '@msgpack/msgpack';
 import * as net from 'node:net';
-import { CmdResponse } from '.';
 
-export function sendToIpc(data: Uint8Array) {
- 
-    return new Promise<CmdResponse>((resolve, x) => {
+export function sendToIpc(ipcpath: string, data: Uint8Array) {
+
+    return new Promise<Uint8Array>((resolve, onErr) => {
         const PIPE_PATH: string = process.platform === 'win32'
-            ? '\\\\.\\pipe\\my-ipc'
-            : '\0my-ipc';
- 
+            ? '\\\\.\\pipe\\' + ipcpath
+            : '\0' + ipcpath;
+
         const client: net.Socket = net.createConnection(PIPE_PATH, (): void => {
             console.log('✅ Terhubung ke Server Rust!');
             client.write(data);
@@ -17,22 +16,27 @@ export function sendToIpc(data: Uint8Array) {
 
         const chunks: Buffer[] = [];
 
-        client.on('data', (chunk: Buffer): void => { 
+        client.on('data', (chunk: Buffer): void => {
             chunks.push(chunk);
         });
 
-        client.on('end', (): void => { 
+        client.on('end', (): void => {
             const completeBuffer = Buffer.concat(chunks);
-            let decodedData  = {} as CmdResponse;
+            let uint8Array: Uint8Array | null = null;
 
-            try { 
-                const uint8Array = new Uint8Array(completeBuffer);  
-                decodedData = decode(uint8Array) as CmdResponse; 
-                
-            } catch (error) { 
+            try {
+                uint8Array = new Uint8Array(completeBuffer);
+
+            } catch (error) {
+                onErr(error);
             }
 
-            resolve(decodedData);
+            if (uint8Array != null) {
+                resolve(uint8Array);
+            } else {
+                onErr("data null");
+            }
+
         });
 
         client.on('error', (err: NodeJS.ErrnoException): void => {
@@ -44,5 +48,20 @@ export function sendToIpc(data: Uint8Array) {
         });
     })
 
+}
+
+export interface CmdResponse {
+    cmd: string;
+    message: string;
+}
+
+let ipcpath = process.env.IPCNAME? process.env.IPCNAME : "err" ;
+
+export async function sendIpcCmd(data: CmdResponse) {
+    let arrData = encode(data);
+
+    let responseData = await sendToIpc(ipcpath, arrData);
+    let cmdResponse = decode(responseData) as CmdResponse;
+    return cmdResponse;
 }
 

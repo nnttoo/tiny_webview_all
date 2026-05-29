@@ -1,4 +1,4 @@
-use std::sync::mpsc;
+use std::sync::{Arc, mpsc};
 
 use tao::{
     event::{Event, WindowEvent},
@@ -7,24 +7,29 @@ use tao::{
 };
 use tokio::task::JoinHandle;
 
-use crate::app_ctx::{AppMyContext, CustomEvent};
+use crate::app_ctx::{AppMyContext, AppMyContextArc, CustomEvent};
 
-pub fn create_event_loop() -> (AppMyContext, JoinHandle<()>) {
-    let (tx, rx) = mpsc::channel::<AppMyContext>();
+pub fn create_event_loop() -> (AppMyContextArc, JoinHandle<()>) {
+    let (tx, rx) = mpsc::channel::<AppMyContextArc>();
 
     let thread_handle = tokio::task::spawn_blocking(move || {
         let event_loop = EventLoopBuilder::<CustomEvent>::with_user_event()
             .with_any_thread(true)
             .build();
 
-        let mut my_app_context = AppMyContext::new(event_loop.create_proxy());
+        let my_app_context = AppMyContext::new(event_loop.create_proxy());
+        let my_app_arc = Arc::new(my_app_context);
 
-        tx.send(my_app_context.clone()).unwrap();
+        tx.send(my_app_arc.clone()).unwrap();
 
         event_loop.run(move |event, elwt, control_flow| match event {
             Event::UserEvent(CustomEvent::Execute(myfun)) => {
                 myfun(elwt);
-            }
+            },
+
+            Event::UserEvent(CustomEvent::Exit())=>{ 
+                *control_flow = ControlFlow::Exit;
+            },
 
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
@@ -32,7 +37,7 @@ pub fn create_event_loop() -> (AppMyContext, JoinHandle<()>) {
                 ..
             } => {
                 println!("try to close window");
-                if my_app_context.webview_remove(window_id) {
+                if my_app_arc.webview_remove(window_id) {
                     *control_flow = ControlFlow::Exit;
                 } 
             }
