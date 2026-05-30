@@ -1,13 +1,14 @@
 use std::sync::{Arc, mpsc};
 
+use crate::app_ctx::{AppMyContext, CustomEvent};
 use serde::{Deserialize, Serialize};
 use tao::{
-    event_loop::{ EventLoopWindowTarget},
+    event_loop::EventLoopWindowTarget,
     window::{Fullscreen, WindowBuilder},
 };
-use wry::{PermissionResponse, WebViewBuilder, WebViewBuilderExtWindows};
-
-use crate::app_ctx::{AppMyContext, CustomEvent};
+#[cfg(target_os = "windows")]
+use wry::WebViewBuilderExtWindows as _;
+use wry::{PermissionResponse, WebViewBuilder};
 
 #[derive(Clone, Serialize, Deserialize)]
 struct BrowserConfig {
@@ -21,11 +22,11 @@ struct BrowserConfig {
     pub is_debug: bool,
     pub is_always_ontop: bool,
     pub is_fullscreen: bool,
-    pub ipc_server :  String
+    pub ipc_server: String,
 }
 
 pub fn open_web(
-    app_ctx: Arc::<AppMyContext>,
+    app_ctx: Arc<AppMyContext>,
     configstr: String,
 ) -> Result<u32, Box<dyn std::error::Error>> {
     let (tx, rx) = mpsc::channel::<u32>();
@@ -60,6 +61,19 @@ pub fn open_web(
                     PermissionResponse::Allow
                 })
                 .with_url(config.url);
+
+            #[cfg(target_os = "windows")]
+            {
+                let mut data_dir = std::env::var("LOCALAPPDATA")
+                    .map(std::path::PathBuf::from)
+                    .unwrap_or_else(|_| std::env::current_dir().unwrap());
+                data_dir.push("TinyWebView");
+                data_dir.push("WebViewData");
+                let _ = std::fs::create_dir_all(&data_dir);
+                unsafe {
+                    std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", data_dir.to_str().unwrap());
+                }
+            }
 
             let mywebview = webview.build(&window)?;
             let winid = app_ctx_clone.webview_add(mywebview, window);

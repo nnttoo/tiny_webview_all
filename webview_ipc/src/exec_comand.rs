@@ -105,7 +105,7 @@ pub fn execute_command_live(cmd_text: &str, ipcname: String) -> Result<String, S
     let mut total_output = String::new();
     for line in stdout_reader.lines() {
         if let Ok(l) = line {
-            println!("{}", l);
+            println!("[child] {}", l);
             total_output.push_str(&l);
             total_output.push('\n');
         }

@@ -13,7 +13,8 @@ use tao::{
 use tokio::sync::RwLock;
 use wry::WebView;
 
-use crate::ipc_server::create_ipc_name;
+use crate::ipc_server_handler::create_ipc_name;
+ 
 
 type BoxedCommand = Box<dyn FnOnce(&EventLoopWindowTarget<CustomEvent>) + Send + 'static>;
 
