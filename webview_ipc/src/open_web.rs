@@ -1,6 +1,6 @@
 use std::sync::{Arc, mpsc};
 
-use crate::app_ctx::{AppMyContext, CustomEvent};
+use crate::{app_ctx::{AppMyContext, CustomEvent}, open_web_ipc::webvie_ipc};
 use serde::{Deserialize, Serialize};
 use tao::{
     event_loop::EventLoopWindowTarget,
@@ -11,7 +11,7 @@ use wry::WebViewBuilderExtWindows as _;
 use wry::{PermissionResponse, WebViewBuilder};
 
 #[derive(Clone, Serialize, Deserialize)]
-struct BrowserConfig {
+pub struct BrowserConfig {
     pub url: String,
     pub title: String,
     pub width: i32,
@@ -34,11 +34,11 @@ pub fn open_web(
     let config = serde_json::from_str::<BrowserConfig>(&configstr)?;
 
     let app_ctx_clone = app_ctx.clone();
-    let command = Box::new(move |elwt: &EventLoopWindowTarget<CustomEvent>| {
+    let command = Box::new(move |elwt: &EventLoopWindowTarget<CustomEvent>| { 
+        
         let winid = (|| -> Result<u32, Box<dyn std::error::Error>> {
-            println!("berapa wya {}", config.width);
             let mut builder = WindowBuilder::new()
-                .with_title(config.title)
+                .with_title(config.title.to_string())
                 .with_inner_size(tao::dpi::PhysicalSize::new(config.width, config.height))
                 .with_decorations(!config.is_frameless) // Frameless
                 .with_resizable(config.is_resizable)
@@ -52,7 +52,7 @@ pub fn open_web(
 
             let window = builder.build(&elwt)?;
 
-            let webview = WebViewBuilder::new()
+            let mut webview = WebViewBuilder::new()
                 .with_devtools(config.is_debug)
                 .with_autoplay(true)
                 .with_https_scheme(true)
@@ -60,7 +60,9 @@ pub fn open_web(
                     println!("Otomatis mengizinkan: {:?}", kind);
                     PermissionResponse::Allow
                 })
-                .with_url(config.url);
+                .with_url(config.url.to_string());
+
+            webview = webvie_ipc(&config, webview);
 
             #[cfg(target_os = "windows")]
             {
@@ -74,6 +76,8 @@ pub fn open_web(
                     std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", data_dir.to_str().unwrap());
                 }
             }
+            
+           
 
             let mywebview = webview.build(&window)?;
             let winid = app_ctx_clone.webview_add(mywebview, window);

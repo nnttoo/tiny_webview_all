@@ -16,7 +16,7 @@ export function sendToIpc(ipcpath: string, data: Uint8Array) {
 
         const PIPE_PATH = createIpcPipeName(ipcpath);
         const client: net.Socket = net.createConnection(PIPE_PATH, (): void => {
-            console.log('✅ Terhubung ke Server Rust!');
+            console.log('✅ Call Rust IPC');
 
             // Haryanto 30 05 2026
             // send data length at first byte
@@ -30,25 +30,17 @@ export function sendToIpc(ipcpath: string, data: Uint8Array) {
 
         let responseBuffer = Buffer.alloc(0);
         let expectedResponseLength = -1;
-
-       // --- PROCESS RECEIVING RESPONSE ---
-        client.on('data', (chunk: Buffer) => {
-            // Append incoming chunk to the internal buffer
-            responseBuffer = Buffer.concat([responseBuffer, chunk]);
-
-            // If expected length is not set yet and we have at least 4 bytes for the header
+ 
+        client.on('data', (chunk: Buffer) => { 
+            responseBuffer = Buffer.concat([responseBuffer, chunk]); 
             if (expectedResponseLength === -1 && responseBuffer.length >= 4) {
-                expectedResponseLength = responseBuffer.readUInt32BE(0);
-                // Strip the 4-byte header, keeping only the actual payload data
+                expectedResponseLength = responseBuffer.readUInt32BE(0); 
                 responseBuffer = responseBuffer.subarray(4);
-            }
-
-            // If we know the expected length and the collected payload meets or exceeds it
-            if (expectedResponseLength !== -1 && responseBuffer.length >= expectedResponseLength) {
-                // Slice the exact length of the expected payload (handles any potential trailing data)
+            } 
+            if (expectedResponseLength !== -1 && responseBuffer.length >= expectedResponseLength) { 
                 const finalReply = responseBuffer.subarray(0, expectedResponseLength);
                 
-                client.end(); // Close connection since the communication is complete
+                client.end();  
                 resolve(finalReply);
             }
         });

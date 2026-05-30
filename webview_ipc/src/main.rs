@@ -17,6 +17,7 @@ mod ipc_server;
 mod ipc_server_handler;
 mod open_web;
 mod start_event_loop;
+mod open_web_ipc;
 
 #[tokio::main]
 async fn main() {
