@@ -41,8 +41,9 @@ pub fn webvie_ipc<'a>(
                     body = node_response.body;
                 }
 
-                let response = wry::http::Response::builder()
+                let response = wry::http::Response::builder() //: 47
                     .header("Content-Type", "text/html")
+                    .header("Content-Length", format!("{}", body.len()))
                     .body(body)
                     .unwrap();
                 responder.respond(response);

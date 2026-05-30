@@ -3,9 +3,9 @@ use std::{
     io::{BufRead, BufReader},
     os::windows::process::CommandExt,
     path::PathBuf,
-    process::{Command, Stdio},
+    process::{Command, Stdio}, sync::{Arc, atomic::{AtomicBool, Ordering}}, thread, time::Duration,
 };
-
+use command_group::{CommandGroup};
 use crate::app_ctx::AppMyContextArc;
 
 fn get_exe_folder() -> PathBuf {
@@ -69,7 +69,11 @@ fn get_cmd_content() -> String {
 //     }
 // }
 
-pub fn execute_command_live(cmd_text: &str, ipcname: String) -> Result<String, String> {
+pub fn execute_command_live(
+    cmd_text: &str,
+    ipcname: String,
+    exit_signal: Arc<AtomicBool>,
+) -> Result<String, String> {
     let mut command = if cfg!(target_os = "windows") {
         let mut c = Command::new("cmd");
         c.args(["/C", cmd_text]);
@@ -87,10 +91,10 @@ pub fn execute_command_live(cmd_text: &str, ipcname: String) -> Result<String, S
     command.stderr(Stdio::piped());
 
     let mut child = command
-        .spawn()
+        .group_spawn()
         .map_err(|e| format!("Failed to start command: {}", e))?;
-    let stdout = child.stdout.take().ok_or("Failed to open stdout")?;
-    let stderr = child.stderr.take().ok_or("Failed to open stderr")?;
+    let stdout = child.inner().stdout.take().ok_or("Failed to open stdout")?;
+    let stderr = child.inner().stderr.take().ok_or("Failed to open stderr")?;
 
     let stdout_reader = BufReader::new(stdout);
     let stderr_reader = BufReader::new(stderr);
@@ -102,22 +106,48 @@ pub fn execute_command_live(cmd_text: &str, ipcname: String) -> Result<String, S
             }
         }
     });
-    let mut total_output = String::new();
-    for line in stdout_reader.lines() {
-        if let Ok(l) = line {
-            println!("[child] {}", l);
-            total_output.push_str(&l);
-            total_output.push('\n');
+
+    let stderr_handle2 = std::thread::spawn(move || {
+        for line in stdout_reader.lines() {
+            if let Ok(l) = line {
+                println!("[child] {}", l);
+            }
+        }
+    });
+
+    loop {
+        if exit_signal.load(Ordering::Relaxed) {
+            match child.kill() {
+                Ok(_)=>{
+                    println!("exit berhasil")
+                },
+                Err(err)=>{
+                    println!("exit error {err}");
+                }
+            } 
+
+            println!("signal is exit");
+            break;
+        }
+
+        match child.try_wait() {
+            Ok(Some(_status)) => break, // Selesai alami, keluar dari loop
+            Ok(None) => {
+                thread::sleep(Duration::from_millis(20));
+            }
+            Err(_) => break,
         }
     }
+
     let _ = stderr_handle.join();
+    let _ = stderr_handle2.join();
 
     let status = child
         .wait()
         .map_err(|e| format!("Error waiting for process: {}", e))?;
 
     if status.success() {
-        Ok(total_output)
+        Ok("".to_string())
     } else {
         Err(format!(
             "Command exited with companion error status: {}",
@@ -132,7 +162,11 @@ pub async fn exec_command(appctx: AppMyContextArc) {
     println!("nama ipc nya {}", ipcname);
 
     let cmd_ctn = get_cmd_content();
-    _ = execute_command_live(&cmd_ctn, ipcname.to_string());
+    _ = execute_command_live(
+        &cmd_ctn, 
+        ipcname.to_string(),
+        appctx.is_exit.clone()
+    );
     println!("Process END : {}", cmd_ctn);
 
     appctx.exit_window();

@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     sync::{
         Arc,
-        atomic::{AtomicU32, Ordering},
+        atomic::{AtomicBool, AtomicU32, Ordering},
     },
 };
 
@@ -14,7 +14,6 @@ use tokio::sync::RwLock;
 use wry::WebView;
 
 use crate::ipc_server_handler::create_ipc_name;
- 
 
 type BoxedCommand = Box<dyn FnOnce(&EventLoopWindowTarget<CustomEvent>) + Send + 'static>;
 
@@ -37,7 +36,6 @@ impl UnsafeWindowMap {
         }
     }
 }
- 
 
 pub enum CustomEvent {
     Execute(BoxedCommand),
@@ -54,6 +52,7 @@ pub struct AppMyContext {
     hash_map: RwLock<MyWindowMap>,
     pub even_loop_poxy: EventLoopProxy<CustomEvent>,
     pub ipc_name: String,
+    pub is_exit: Arc<AtomicBool>,
 }
 
 impl AppMyContext {
@@ -62,6 +61,7 @@ impl AppMyContext {
             hash_map: RwLock::new(HashMap::new()),
             even_loop_poxy: event_loop,
             ipc_name: create_ipc_name(),
+            is_exit: Arc::new(AtomicBool::new(false)),
         })
     }
     pub fn webview_add(&self, webview: WebView, window: Window) -> u32 {
@@ -77,6 +77,10 @@ impl AppMyContext {
         wind_32id
     }
 
+    fn maket_to_exit(&self) {
+        self.is_exit.store(true, Ordering::Relaxed);
+    }
+
     pub fn webview_remove(&self, windowid: WindowId) -> bool {
         let Ok(mut hash_map) = self.hash_map.try_write() else {
             return false;
@@ -84,6 +88,10 @@ impl AppMyContext {
 
         hash_map.remove(&windowid);
         let isempty = hash_map.is_empty();
+        if  isempty {
+            self.maket_to_exit();
+        }
+
         isempty
     }
 
@@ -114,6 +122,8 @@ impl AppMyContext {
         let Ok(mut hashmap) = self.hash_map.try_write() else {
             return;
         };
+
+        println!("all windows exit");
 
         hashmap.clear();
         _ = self.even_loop_poxy.send_event(CustomEvent::Exit());

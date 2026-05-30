@@ -37,6 +37,20 @@ async function run() {
             ipc_server: myipcpath
         });
 
+        let webf = await openWebview({
+            height: 600,
+            width: 1000,
+            is_debug: true,
+            is_frameless: false,
+            is_maximize: false,
+            is_resizable: true,
+            is_always_ontop: false,
+            is_fullscreen: false,
+            title: "My Web Title",
+            url: myipcpath + "://index.html",
+            ipc_server: myipcpath
+        });
+
     } catch (error) {
         console.log("node js error");
     }
