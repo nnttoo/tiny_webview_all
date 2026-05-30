@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{  time::Duration};
+use std::time::Duration;
 
 use tokio::time::sleep;
 
@@ -16,8 +16,11 @@ mod ipc_send;
 mod ipc_server;
 mod ipc_server_handler;
 mod open_web;
-mod start_event_loop;
+mod open_web_icon;
 mod open_web_ipc;
+mod start_event_loop;
+
+mod utils_tools;
 
 #[tokio::main]
 async fn main() {
@@ -60,7 +63,7 @@ async fn main() {
             }
         });
 
-    ipcroute.create_server(app_ctx.clone()); 
+    ipcroute.create_server(app_ctx.clone());
     tokio::spawn(exec_command(app_ctx));
     _ = mytread.await;
 }

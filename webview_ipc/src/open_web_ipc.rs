@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use wry::{RequestAsyncResponder, WebViewBuilder};
+use wry::{RequestAsyncResponder, WebViewBuilder, http::StatusCode};
 
 use crate::{ipc_send, open_web::BrowserConfig};
 
@@ -9,6 +9,7 @@ pub struct WebRequest {
     pub method: String,
     pub body: Vec<u8>,
     pub content_type: String,
+    status : u16
 }
 
 pub fn webvie_ipc<'a>(
@@ -29,21 +30,32 @@ pub fn webvie_ipc<'a>(
                 uri: _request.uri().to_string(),
                 method: _request.method().to_string(),
                 content_type: "".to_string(),
+                status : 200,
             };
 
             let ipc_server = ipc_server.clone();
 
             tokio::spawn(async move {
                 let mut body = b"<h1>No Ipc Response </h1>".to_vec();
+                let mut status : StatusCode = StatusCode::OK;
+                let mut content_type = "text/html".to_string();
 
                 if let Some(node_response) =  send_webreq_toipc(&ipc_server, &web_rq).await {
 
                     body = node_response.body;
+                    status = match StatusCode::from_u16(node_response.status) {
+                        Ok(sts)=>sts,
+                        _=>{
+                            StatusCode::NOT_FOUND
+                        }
+                    };
+                    content_type = node_response.content_type;
                 }
 
                 let response = wry::http::Response::builder() //: 47
-                    .header("Content-Type", "text/html")
+                    .header("Content-Type", content_type)
                     .header("Content-Length", format!("{}", body.len()))
+                    .status(status)
                     .body(body)
                     .unwrap();
                 responder.respond(response);

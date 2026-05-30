@@ -1,6 +1,6 @@
 use std::sync::{Arc, mpsc};
 
-use crate::{app_ctx::{AppMyContext, CustomEvent}, open_web_ipc::webvie_ipc};
+use crate::{app_ctx::{AppMyContext, CustomEvent}, open_web_icon::load_dynamic_png, open_web_ipc::webvie_ipc};
 use serde::{Deserialize, Serialize};
 use tao::{
     event_loop::EventLoopWindowTarget,
@@ -42,6 +42,7 @@ pub fn open_web(
                 .with_inner_size(tao::dpi::PhysicalSize::new(config.width, config.height))
                 .with_decorations(!config.is_frameless) // Frameless
                 .with_resizable(config.is_resizable)
+                .with_window_icon(load_dynamic_png())
                 .with_always_on_top(config.is_always_ontop)
                 .with_maximized(config.is_maximize);
 
