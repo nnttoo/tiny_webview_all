@@ -44,7 +44,9 @@ impl UiController {
     }
 
     pub fn remove(&mut self, wi : WindowId)->bool{
+        self.hash_map.remove(&wi);
 
-        false
-    }
+        self.hash_map.is_empty() 
+        
+    } 
 }

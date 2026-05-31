@@ -37,14 +37,13 @@ pub fn open_web(
     let (tx, rx) = mpsc::channel::<u32>();
 
     let config = serde_json::from_str::<BrowserConfig>(&configstr)?;
+ 
 
     let app_ctx_clone = app_ctx.clone();
     let command = Box::new(
-        move |
-        elwt: &EventLoopWindowTarget<CustomEvent>, 
-        ui_controller: &mut UiController
-        
-        | {
+        move |elwt: &EventLoopWindowTarget<CustomEvent>, ui_controller: &mut UiController| {
+ 
+
             let winid = (|| -> Result<u32, Box<dyn std::error::Error>> {
                 let mut builder = WindowBuilder::new()
                     .with_title(config.title.to_string())
@@ -104,7 +103,7 @@ pub fn open_web(
             }
         },
     );
-
+ 
     _ = app_ctx
         .even_loop_poxy
         .send_event(CustomEvent::ExecuteUI(command));

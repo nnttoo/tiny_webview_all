@@ -1,4 +1,4 @@
-use std::sync::{  mpsc};
+use std::{sync::mpsc, thread};
 
 use tao::{
     event::{Event, WindowEvent},
@@ -41,14 +41,19 @@ pub fn create_event_loop() -> (AppMyContextArc, JoinHandle<()>) {
                 ..
             } => {
                 println!("try to close window");
-                if my_app_context.webview_remove(window_id) {
+                if ui_controller.remove(window_id) {
                     *control_flow = ControlFlow::Exit;
                 } 
             }
 
             _ => (),
         });
+ 
+
+        
     });
+
+    
 
     let myapp_ctx = rx.recv().unwrap();
 
