@@ -6,6 +6,8 @@ use std::{
 use tao::window::{Window, WindowId};
 use wry::WebView;
 
+use crate::app_ctx::AppMyContextArc;
+
 static ID_GENERATOR: AtomicU32 = AtomicU32::new(10);
 fn get_id_generator() -> u32 {
     ID_GENERATOR.fetch_add(1, Ordering::Relaxed)
@@ -19,12 +21,14 @@ struct UiControllerItem {
 
 pub struct UiController {
     hash_map: HashMap<WindowId, UiControllerItem>,
+    pub app_ctx : AppMyContextArc
 }
 
 impl UiController {
-    pub fn new() -> Self {
+    pub fn new(appctx : AppMyContextArc) -> Self {
         Self {
             hash_map: HashMap::new(),
+            app_ctx : appctx
         }
     }
 
@@ -43,10 +47,36 @@ impl UiController {
         wid
     }
 
-    pub fn remove(&mut self, wi : WindowId)->bool{
+    pub fn remove_by_id(&mut self, win_id : u32){
+
+        let id : Option<WindowId> = (||{
+            for (key, item) in self.hash_map.iter() {
+                if item._window_id == win_id {
+                    return Some(key.clone());
+                }
+            }
+
+            return None;
+        })();
+
+        let Some(id) = id else {
+            return;
+        };
+
+        self.remove(id);
+
+    }
+
+    pub fn is_window_empty(&self)->bool{
+        return self.hash_map.is_empty();
+    }
+
+    pub fn remove(&mut self, wi : WindowId){
         self.hash_map.remove(&wi);
 
-        self.hash_map.is_empty() 
+        if self.is_window_empty(){
+            self.app_ctx.req_stop_all("all windows closed");
+        }
         
     } 
 }

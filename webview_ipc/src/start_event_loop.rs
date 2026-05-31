@@ -1,4 +1,4 @@
-use std::{sync::mpsc, thread};
+use std::sync::mpsc;
 
 use tao::{
     event::{Event, WindowEvent},
@@ -7,7 +7,10 @@ use tao::{
 };
 use tokio::task::JoinHandle;
 
-use crate::{app_ctx::{AppMyContext, AppMyContextArc, CustomEvent}, start_event_loop_ui::UiController};
+use crate::{
+    app_ctx::{AppMyContext, AppMyContextArc, CustomEvent},
+    start_event_loop_ui::UiController,
+};
 
 pub fn create_event_loop() -> (AppMyContextArc, JoinHandle<()>) {
     let (tx, rx) = mpsc::channel::<AppMyContextArc>();
@@ -17,43 +20,31 @@ pub fn create_event_loop() -> (AppMyContextArc, JoinHandle<()>) {
             .with_any_thread(true)
             .build();
 
-        let my_app_context = AppMyContext::new(event_loop.create_proxy()); 
-        _=tx.send(my_app_context.clone());
+        let my_app_context = AppMyContext::new(event_loop.create_proxy());
+        _ = tx.send(my_app_context.clone());
 
-        let mut ui_controller = UiController::new();
+        let mut ui_controller = UiController::new(my_app_context.clone());
 
         event_loop.run(move |event, elwt, control_flow| match event {
-            Event::UserEvent(CustomEvent::Execute(myfun)) => {
-                myfun(elwt);
-            },
-
-            Event::UserEvent(CustomEvent::ExecuteUI(myfun))=>{
+            Event::UserEvent(CustomEvent::ExecuteUI(myfun)) => {
                 myfun(elwt, &mut ui_controller);
-            },
+            }
 
-            Event::UserEvent(CustomEvent::Exit())=>{ 
+            Event::UserEvent(CustomEvent::Exit()) => {
                 *control_flow = ControlFlow::Exit;
-            },
+            }
 
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 window_id,
                 ..
             } => {
-                println!("try to close window");
-                if ui_controller.remove(window_id) {
-                    *control_flow = ControlFlow::Exit;
-                } 
+                ui_controller.remove(window_id);
             }
 
             _ => (),
         });
- 
-
-        
     });
-
-    
 
     let myapp_ctx = rx.recv().unwrap();
 

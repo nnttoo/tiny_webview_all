@@ -169,5 +169,5 @@ pub async fn exec_command(appctx: AppMyContextArc) {
     _ = execute_command_live(&cmd_ctn, ipcname.to_string(), appctx.is_exit.clone());
     println!("Process END : {}", cmd_ctn);
 
-    appctx.exit_window();
+    appctx.command_is_finish();
 }

@@ -36,10 +36,8 @@ pub fn open_web(
 ) -> Result<u32, Box<dyn std::error::Error>> {
     let (tx, rx) = mpsc::channel::<u32>();
 
-    let config = serde_json::from_str::<BrowserConfig>(&configstr)?;
+    let config = serde_json::from_str::<BrowserConfig>(&configstr)?; 
  
-
-    let app_ctx_clone = app_ctx.clone();
     let command = Box::new(
         move |elwt: &EventLoopWindowTarget<CustomEvent>, ui_controller: &mut UiController| {
  
