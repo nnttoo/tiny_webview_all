@@ -44,8 +44,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 Here is the current development status of the project, ordered from the earliest milestones to upcoming features:
 
-- ✅ Change project name to `webview_ipc`
-- ✅ Create file server using IPC
-- 🕧 Implement advanced event listeners
-- 🕧 Add automated build pipelines for Windows, Linux, and macOS
 - 🕧 Release stable v1.0.0 for production
+- 🕧 Add automated build pipelines for Windows, Linux, and macOS
+- 🕧 Create NPM Package webview_ipc
+- ✅ Change project name to `webview_ipc`
+- ✅ Create file server using IPC 
