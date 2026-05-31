@@ -1,13 +1,8 @@
+use std::{collections::HashMap, pin::Pin, sync::Arc};
 
-use std::{
-    collections::HashMap,
-    pin::Pin,
-    sync::Arc, 
-};
- 
-use serde::{Deserialize, Serialize}; 
+use serde::{Deserialize, Serialize};
 
-use crate::{app_ctx::AppMyContextArc, ipc_server_handler::create_ipc_server };
+use crate::{app_ctx::AppMyContextArc, ipc_server_handler::create_ipc_server};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CmdMessage {
@@ -15,10 +10,19 @@ pub struct CmdMessage {
     pub message: String,
 }
 
-pub type IpcRoutePin = Pin<Box<dyn Future<Output = CmdMessage> + Send + 'static>>;
-type IpcRouteBox = Box<dyn Fn(CmdMessage) -> IpcRoutePin + Send + Sync>; 
-type IpcRouteHashMap = HashMap<String, IpcRouteBox>; 
-pub type IpcRouteHashMapArc = Arc<IpcRouteHashMap>; 
+impl CmdMessage {
+    pub fn new(cmd: &str, msg: &str) -> Self {
+        Self {
+            cmd: cmd.to_string(),
+            message: msg.to_string(),
+        }
+    }
+}
+ 
+pub type IpcRoutePin = Pin<Box<dyn Future<Output =  CmdMessage> + Send + 'static>>;
+type IpcRouteBox = Box<dyn Fn(CmdMessage) -> IpcRoutePin + Send + Sync>;
+type IpcRouteHashMap = HashMap<String, IpcRouteBox>;
+pub type IpcRouteHashMapArc = Arc<IpcRouteHashMap>;
 
 pub struct IpcRoute {
     pub hashmap: IpcRouteHashMap,
@@ -27,11 +31,11 @@ pub struct IpcRoute {
 impl IpcRoute {
     pub fn new() -> Self {
         IpcRoute {
-            hashmap:  HashMap::new(),
+            hashmap: HashMap::new(),
         }
     }
 
-    pub fn add_route<F, Fut>(mut self, path: &str, handler: F) ->Self
+    pub fn add_route<F, Fut>(mut self, path: &str, handler: F) -> Self
     where
         F: Fn(CmdMessage) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = CmdMessage> + Send + 'static,
@@ -39,7 +43,7 @@ impl IpcRoute {
         // let Ok(mut hashmap) = self.hashmap.try_write() else {
         //     return;
         // };
- 
+
         let hashmap = &mut self.hashmap;
 
         let wrapped_handler = move |req: CmdMessage| {
@@ -52,11 +56,9 @@ impl IpcRoute {
     }
 
     pub fn create_server(self, app_ctx: AppMyContextArc) {
-
         let hashclone = Arc::new(self.hashmap);
         tokio::spawn(async move {
             create_ipc_server(app_ctx, hashclone).await;
         });
     }
 }
-

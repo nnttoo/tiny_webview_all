@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises"; 
 import { WebRequest } from "./ipc_server_web";
 
-function getPathFromUrl(urlstring: string) {
+export function getPathFromUrl(urlstring: string) {
     let urlObj = new URL(urlstring);
     return urlObj.pathname;
 }
@@ -58,7 +58,7 @@ export function createFileHandler(folderpath : string) {
         let result :WebRequest = {
             status: 404,
             uri : "",
-            body : Uint8Array.from(Buffer.from("","utf-8")),
+            body :  Buffer.from("","utf-8"),
             content_type : "",
             method : "",
 

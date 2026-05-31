@@ -7,7 +7,7 @@ use tao::{
 };
 use tokio::task::JoinHandle;
 
-use crate::app_ctx::{AppMyContext, AppMyContextArc, CustomEvent};
+use crate::{app_ctx::{AppMyContext, AppMyContextArc, CustomEvent}, start_event_loop_ui::UiController};
 
 pub fn create_event_loop() -> (AppMyContextArc, JoinHandle<()>) {
     let (tx, rx) = mpsc::channel::<AppMyContextArc>();
@@ -20,9 +20,15 @@ pub fn create_event_loop() -> (AppMyContextArc, JoinHandle<()>) {
         let my_app_context = AppMyContext::new(event_loop.create_proxy()); 
         _=tx.send(my_app_context.clone());
 
+        let mut ui_controller = UiController::new();
+
         event_loop.run(move |event, elwt, control_flow| match event {
             Event::UserEvent(CustomEvent::Execute(myfun)) => {
                 myfun(elwt);
+            },
+
+            Event::UserEvent(CustomEvent::ExecuteUI(myfun))=>{
+                myfun(elwt, &mut ui_controller);
             },
 
             Event::UserEvent(CustomEvent::Exit())=>{ 

@@ -1,16 +1,11 @@
-import path from "node:path";
-import { createIpcServer } from "./ipc_server";
-import { startWebIpcServer } from "./ipc_server_web";
-import { openWebview } from "./webview_open";
-
-
-
+import path from "node:path"; 
+import  { openWebview, startWebIpcServer, WebResponse } from "webview_ipc"
+ 
 let ipcpath = process.env.IPCNAME ? process.env.IPCNAME : "err";
-
-function sleep(n: number) {
-    return new Promise((r, x) => {
-        setTimeout(r, n);
-    });
+  
+ export interface FParam {
+    cmd: string,
+    params: any
 }
 
 async function run() {
@@ -22,9 +17,31 @@ async function run() {
 
     let myipcpath = ipcpath + "mynodeipc";
 
-    startWebIpcServer(myipcpath,
+    startWebIpcServer(
+        myipcpath, 
+        path.join(__dirname, "../html"),
+        async (req)=>{ 
+            if(req.path != "/controlwindow"){ 
+                return null;
+            }
+            let json = req.bodyJson<FParam>();
+            if(json.cmd == null) return null;
 
-        path.join(__dirname, "../html")
+            if(json.cmd == "close") {
+
+                web.close();
+
+                return {
+                    body : Buffer.from("ok"),
+                    content_type : "application/json"
+                }
+            }
+
+            console.log(json.cmd);
+
+            return null;
+
+        }   
     );
     
     try {

@@ -1,12 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::time::Duration;
-
-use tokio::time::sleep;
-
 use crate::{
     exec_comand::exec_command,
-    ipc_server::{CmdMessage, IpcRoute},
+    ipc_server::IpcRoute,
+    main_routefun::{ set_appctx_static, web_close, web_open},
     start_event_loop::create_event_loop,
 };
 
@@ -15,11 +12,12 @@ mod exec_comand;
 mod ipc_send;
 mod ipc_server;
 mod ipc_server_handler;
+mod main_routefun;
 mod open_web;
 mod open_web_icon;
 mod open_web_ipc;
 mod start_event_loop;
-
+mod start_event_loop_ui;
 mod utils_tools;
 
 #[tokio::main]
@@ -27,41 +25,11 @@ async fn main() {
     println!("Hello Async!");
 
     let (app_ctx, mytread) = create_event_loop();
+    set_appctx_static(app_ctx.clone()); 
 
     let ipcroute = IpcRoute::new()
-        .add_route("openweb", {
-            let ctx_open = app_ctx.clone();
-            move |msg| {
-                let ctx = ctx_open.clone();
-                async move {
-                    let winid = match open_web::open_web(ctx, msg.message) {
-                        Ok(w) => w,
-                        _ => 0,
-                    };
-
-                    CmdMessage {
-                        cmd: "ini".into(),
-                        message: format!("{}", winid),
-                    }
-                }
-            }
-        })
-        .add_route("closeweb", {
-            let ctx_open = app_ctx.clone();
-            move |msg| {
-                let ctx = ctx_open.clone();
-                async move {
-                    if let Ok(wid) = msg.message.parse::<u32>() {
-                        ctx.webview_close(wid);
-                    }
-
-                    CmdMessage {
-                        cmd: "".into(),
-                        message: "".into(),
-                    }
-                }
-            }
-        });
+        .add_route("openweb", web_open)
+        .add_route("closeweb", web_close);
 
     ipcroute.create_server(app_ctx.clone());
     tokio::spawn(exec_command(app_ctx));

@@ -1,5 +1,6 @@
-import { sendIpcCmd } from "./send_to_ipc";
+import { sendIpcCmd } from "./send_to_ipc"
 
+ 
 export interface WebViewConfig {
     url: string,
     title: string,

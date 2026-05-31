@@ -23,16 +23,15 @@ pub fn create_ipc_name() -> String {
 }
 
 async fn handle_cmd(client_msg: CmdMessage, funmap: IpcRouteHashMapArc) -> Vec<u8> {
-    let cresponse = match funmap.get(&client_msg.cmd) {
-        Some(cb) => {
-            let result = cb(client_msg).await;
-            result
-        }
-        _ => CmdMessage {
-            cmd: "".into(),
-            message: "fun not found".into(),
-        },
-    };
+    let cresponse = (async || {
+        let Some(cb) = funmap.get(&client_msg.cmd) else {
+            return CmdMessage::new("", "No Fun found");
+        };
+        cb(client_msg).await
+        
+    })()
+    .await;
+
     match rmp_serde::to_vec_named(&cresponse) {
         Ok(data) => data,
         _ => b"".to_vec(),
@@ -45,7 +44,7 @@ async fn handle_client(mut stream: Stream, funarc: IpcRouteHashMapArc) {
         return; // Gagal membaca ukuran data
     }
 
-    let data_len = u32::from_be_bytes(len_buffer) as usize; 
+    let data_len = u32::from_be_bytes(len_buffer) as usize;
 
     // Limit len optional
     if data_len > 10 * 1024 * 1024 {
@@ -61,17 +60,16 @@ async fn handle_client(mut stream: Stream, funarc: IpcRouteHashMapArc) {
         return;
     };
     let response = handle_cmd(data_from_client, funarc).await;
-    
+
     // Haryanto 30 05 2026
     // Send data len at first byte
     let response_len = response.len() as u32;
     _ = stream.write_all(&response_len.to_be_bytes()).await;
 
-
     // Send actual data
     _ = stream.write_all(&response).await;
-    _ = stream.flush().await; 
-    _= stream.shutdown().await;
+    _ = stream.flush().await;
+    _ = stream.shutdown().await;
 }
 
 pub async fn create_ipc_server(app_ctx: AppMyContextArc, mapcb: IpcRouteHashMapArc) {

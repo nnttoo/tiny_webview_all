@@ -13,7 +13,7 @@ use tao::{
 use tokio::sync::RwLock;
 use wry::WebView;
 
-use crate::ipc_server_handler::create_ipc_name;
+use crate::{ipc_server_handler::create_ipc_name, start_event_loop_ui::UiController};
 
 type BoxedCommand = Box<dyn FnOnce(&EventLoopWindowTarget<CustomEvent>) + Send + 'static>;
 
@@ -37,8 +37,10 @@ impl UnsafeWindowMap {
     }
 }
 
+type BoxedCommandUI = Box<dyn FnOnce(&EventLoopWindowTarget<CustomEvent>, &mut UiController) + Send + 'static>;
 pub enum CustomEvent {
     Execute(BoxedCommand),
+    ExecuteUI(BoxedCommandUI),
     Exit(),
 }
 
@@ -94,6 +96,22 @@ impl AppMyContext {
 
         isempty
     }
+
+    // pub fn webview_find_byid(&self, wiid: u32) ->Result<Arc::<UnsafeWindowMap>,&str>{
+    //     let Ok(hashnap) = self.hash_map.try_read() else {
+    //         return Err("hashmap is locked");
+    //     };
+
+    //     for (key, item) in hashnap.iter() {
+    //         if  item._window_id == wiid {
+    //             return  Ok(Arc::new(item.clone()));
+    //         }
+    //     }
+
+
+
+    //     Err("")
+    // }
 
     pub fn webview_close(&self, wiid: u32) {
         let windowid: Option<WindowId> = match self.hash_map.try_read() {

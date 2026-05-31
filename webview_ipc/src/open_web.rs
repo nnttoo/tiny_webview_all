@@ -1,6 +1,11 @@
 use std::sync::{Arc, mpsc};
 
-use crate::{app_ctx::{AppMyContext, CustomEvent}, open_web_icon::load_dynamic_png, open_web_ipc::webvie_ipc};
+use crate::{
+    app_ctx::{AppMyContext, CustomEvent},
+    open_web_icon::load_dynamic_png,
+    open_web_ipc::webvie_ipc,
+    start_event_loop_ui::UiController,
+};
 use serde::{Deserialize, Serialize};
 use tao::{
     event_loop::EventLoopWindowTarget,
@@ -34,70 +39,75 @@ pub fn open_web(
     let config = serde_json::from_str::<BrowserConfig>(&configstr)?;
 
     let app_ctx_clone = app_ctx.clone();
-    let command = Box::new(move |elwt: &EventLoopWindowTarget<CustomEvent>| { 
+    let command = Box::new(
+        move |
+        elwt: &EventLoopWindowTarget<CustomEvent>, 
+        ui_controller: &mut UiController
         
-        let winid = (|| -> Result<u32, Box<dyn std::error::Error>> {
-            let mut builder = WindowBuilder::new()
-                .with_title(config.title.to_string())
-                .with_inner_size(tao::dpi::PhysicalSize::new(config.width, config.height))
-                .with_decorations(!config.is_frameless) // Frameless
-                .with_resizable(config.is_resizable)
-                .with_window_icon(load_dynamic_png())
-                .with_always_on_top(config.is_always_ontop)
-                .with_maximized(config.is_maximize);
+        | {
+            let winid = (|| -> Result<u32, Box<dyn std::error::Error>> {
+                let mut builder = WindowBuilder::new()
+                    .with_title(config.title.to_string())
+                    .with_inner_size(tao::dpi::PhysicalSize::new(config.width, config.height))
+                    .with_decorations(!config.is_frameless) // Frameless
+                    .with_resizable(config.is_resizable)
+                    .with_window_icon(load_dynamic_png())
+                    .with_always_on_top(config.is_always_ontop)
+                    .with_maximized(config.is_maximize);
 
-            if config.is_fullscreen {
-                let primary_monitor = elwt.primary_monitor();
-                builder = builder.with_fullscreen(Some(Fullscreen::Borderless(primary_monitor)));
-            }
+                if config.is_fullscreen {
+                    let primary_monitor = elwt.primary_monitor();
+                    builder =
+                        builder.with_fullscreen(Some(Fullscreen::Borderless(primary_monitor)));
+                }
 
-            let window = builder.build(&elwt)?;
+                let window = builder.build(&elwt)?;
 
-            let mut webview = WebViewBuilder::new()
-                .with_devtools(config.is_debug)
-                .with_autoplay(true)
-                .with_https_scheme(true)
-                .with_permission_handler(|kind| {
-                    println!("Otomatis mengizinkan: {:?}", kind);
-                    PermissionResponse::Allow
-                })
-                .with_url(config.url.to_string());
+                let mut webview = WebViewBuilder::new()
+                    .with_devtools(config.is_debug)
+                    .with_autoplay(true)
+                    .with_https_scheme(true)
+                    .with_permission_handler(|kind| {
+                        println!("Otomatis mengizinkan: {:?}", kind);
+                        PermissionResponse::Allow
+                    })
+                    .with_url(config.url.to_string());
 
-            webview = webvie_ipc(&config, webview);
+                webview = webvie_ipc(&config, webview);
 
-            #[cfg(target_os = "windows")]
-            {
-                let mut data_dir = std::env::var("LOCALAPPDATA")
-                    .map(std::path::PathBuf::from)
-                    .unwrap_or_else(|_| std::env::current_dir().unwrap());
-                data_dir.push("TinyWebView");
-                data_dir.push("WebViewData");
-                let _ = std::fs::create_dir_all(&data_dir);
-                unsafe {
-                    std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", data_dir.to_str().unwrap());
+                #[cfg(target_os = "windows")]
+                {
+                    let mut data_dir = std::env::var("LOCALAPPDATA")
+                        .map(std::path::PathBuf::from)
+                        .unwrap_or_else(|_| std::env::current_dir().unwrap());
+                    data_dir.push("TinyWebView");
+                    data_dir.push("WebViewData");
+                    let _ = std::fs::create_dir_all(&data_dir);
+                    unsafe {
+                        std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", data_dir.to_str().unwrap());
+                    }
+                }
+
+                let mywebview = webview.build(&window)?;
+
+                let winid = ui_controller.add(window, mywebview);
+                Ok(winid)
+            })();
+
+            match winid {
+                Ok(winid) => {
+                    _ = tx.send(winid);
+                }
+                Err(_) => {
+                    _ = tx.send(0);
                 }
             }
-            
-           
-
-            let mywebview = webview.build(&window)?;
-            let winid = app_ctx_clone.webview_add(mywebview, window);
-            Ok(winid)
-        })();
-
-        match winid {
-            Ok(winid) => {
-                _ = tx.send(winid);
-            }
-            Err(_) => {
-                _ = tx.send(0);
-            }
-        }
-    });
+        },
+    );
 
     _ = app_ctx
         .even_loop_poxy
-        .send_event(CustomEvent::Execute(command));
+        .send_event(CustomEvent::ExecuteUI(command));
 
     let windid = rx.recv()?;
 
