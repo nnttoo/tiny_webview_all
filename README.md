@@ -1,6 +1,6 @@
 # webview_ipc
 
-A lightweight, cross-platform desktop application framework powered by [WRY](https://github.com/tauri-apps/wry) in Rust. Think of it as an ultra-minimalist alternative to Electron, designed to build modern desktop UIs using web technologies without the massive file size overhead.
+A lightweight, cross-platform desktop application framework powered by [WRY](https://github.com/nnttoo/wry) in Rust. Think of it as an ultra-minimalist alternative to Electron, designed to build modern desktop UIs using web technologies without the massive file size overhead.
 
 ### ⚠️ Project Status: In Development
 This project is currently under active development and is **not yet ready for production**. However, it is progressing quickly, and a stable version is expected to be ready in the near future! Feel free to test it out, report bugs, or share your feedback.
