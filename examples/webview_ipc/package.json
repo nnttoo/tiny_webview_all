@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "run": "tsx ./src/index.ts",
-    "deploy" : "tsx ./src/builder/deploy.ts"
+    "deploy" : "tsx ./src_builder/deploy.ts"
   },
   "author": "",
   "license": "ISC",
