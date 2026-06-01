@@ -57,6 +57,12 @@ async function run() {
 
             }
 
+            if (json.cmd == "maximize") { 
+                web.maximize(json.params as boolean);
+                return simple_result("ok");
+
+            }
+
             console.log(json.cmd);
             console.log(json.params);
 

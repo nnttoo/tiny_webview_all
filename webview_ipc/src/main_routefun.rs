@@ -145,3 +145,34 @@ pub async fn web_minimize(msg: CmdMessage) -> CmdMessage {
 
     cmd_msg("ok")
 }
+
+
+pub async fn web_maximize(msg: CmdMessage) -> CmdMessage {
+    let Some(ctx) = GLOBAL_CTX.get() else {
+        return cmd_msg("ctx er");
+    };
+
+    #[derive(Deserialize)]
+    struct Arg {
+        win_id: u32, 
+        maximized : bool
+    }
+
+    let Ok(arg) = serde_json::from_str::<Arg>(&msg.message) else {
+
+        return cmd_msg("json parse error");
+    };
+
+    ctx.call_ui_fun(move |_, ui_controller| {
+        let Ok(uiitem) = ui_controller.get_window_byid(arg.win_id) else {
+
+            println!("cant get window");
+            return;
+        };
+
+        uiitem.window.set_maximized(arg.maximized); 
+    });
+
+
+    cmd_msg("ok")
+}

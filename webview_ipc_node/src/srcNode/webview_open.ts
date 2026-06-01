@@ -20,6 +20,7 @@ export interface WebControl {
     move: (left: number, top: number) => Promise<void>
     resize: (width: number, height: number) => Promise<void>
     minimize: (minimize : boolean) => Promise<void>
+    maximize: (maximize : boolean) => Promise<void>
 }
 
 export async function openWebview(config: WebViewConfig): Promise<WebControl> {
@@ -55,6 +56,12 @@ export async function openWebview(config: WebViewConfig): Promise<WebControl> {
              await sendIpcCmd({
                 cmd: "minimize",
                 message: JSON.stringify({ win_id: win_id, minimize : isminimize})
+            })
+        },
+        maximize : async (maximize : boolean)=>{
+             await sendIpcCmd({
+                cmd: "maximize",
+                message: JSON.stringify({ win_id: win_id, maximized : maximize})
             })
         }
     }

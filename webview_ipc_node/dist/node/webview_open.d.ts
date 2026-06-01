@@ -16,5 +16,6 @@ export interface WebControl {
     move: (left: number, top: number) => Promise<void>;
     resize: (width: number, height: number) => Promise<void>;
     minimize: (minimize: boolean) => Promise<void>;
+    maximize: (maximize: boolean) => Promise<void>;
 }
 export declare function openWebview(config: WebViewConfig): Promise<WebControl>;

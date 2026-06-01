@@ -32,6 +32,12 @@ async function openWebview(config) {
                 cmd: "minimize",
                 message: JSON.stringify({ win_id: win_id, minimize: isminimize })
             });
+        },
+        maximize: async (maximize) => {
+            await (0, send_to_ipc_1.sendIpcCmd)({
+                cmd: "maximize",
+                message: JSON.stringify({ win_id: win_id, maximized: maximize })
+            });
         }
     };
 }
