@@ -11,6 +11,8 @@ export interface WebViewConfig {
     is_always_ontop: boolean;
     ipc_server: string;
 }
-export declare function openWebview(config: WebViewConfig): Promise<{
+export interface WebControl {
     close: () => Promise<void>;
-}>;
+    move: (left: number, top: number) => Promise<void>;
+}
+export declare function openWebview(config: WebViewConfig): Promise<WebControl>;

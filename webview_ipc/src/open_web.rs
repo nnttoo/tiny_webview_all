@@ -1,10 +1,7 @@
 use std::sync::{Arc, mpsc};
 
 use crate::{
-    app_ctx::{AppMyContext, CustomEvent},
-    open_web_icon::load_dynamic_png,
-    open_web_ipc::webvie_ipc,
-    start_event_loop_ui::UiController,
+    app_ctx::AppMyContext, open_web_icon::load_dynamic_png, open_web_ipc::webvie_ipc, start_event_loop::CustomEvent, start_event_loop_ui::UiController
 };
 use serde::{Deserialize, Serialize};
 use tao::{

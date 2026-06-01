@@ -13,10 +13,10 @@ fn get_id_generator() -> u32 {
     ID_GENERATOR.fetch_add(1, Ordering::Relaxed)
 }
 
-struct UiControllerItem {
-    pub _window: Window,
+pub struct UiControllerItem {
+    pub window: Window,
     pub _webview: WebView,
-    pub _window_id: u32,
+    pub window_id: u32,
 }
 
 pub struct UiController {
@@ -37,9 +37,9 @@ impl UiController {
         let widd = w.id();
 
         let item = UiControllerItem {
-            _window_id: wid,
+            window_id: wid,
             _webview: web,
-            _window: w,
+            window: w,
         };
 
         self.hash_map.insert(widd, item);
@@ -51,7 +51,7 @@ impl UiController {
 
         let id : Option<WindowId> = (||{
             for (key, item) in self.hash_map.iter() {
-                if item._window_id == win_id {
+                if item.window_id == win_id {
                     return Some(key.clone());
                 }
             }
@@ -79,4 +79,20 @@ impl UiController {
         }
         
     } 
+
+    pub fn get_window_byid<F>(&self, wi : u32, cb : F) ->Result<(),&str>
+        where F : FnOnce(&UiControllerItem)
+     {
+        for item in self.hash_map.iter() {
+            if item.1.window_id == wi {
+
+                cb(&item.1);
+
+                return Ok(());
+            }
+        }
+         
+         Err("cant get window")
+    }
+
 }

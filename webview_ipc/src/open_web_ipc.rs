@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use wry::{RequestAsyncResponder, WebViewBuilder, http::StatusCode};
+use wry::{WebViewBuilder, http::StatusCode};
 
 use crate::{ipc_send, open_web::BrowserConfig};
 

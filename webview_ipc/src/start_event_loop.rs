@@ -2,15 +2,25 @@ use std::sync::mpsc;
 
 use tao::{
     event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoopBuilder},
+    event_loop::{ControlFlow, EventLoopBuilder, EventLoopWindowTarget},
     platform::windows::EventLoopBuilderExtWindows,
 };
 use tokio::task::JoinHandle;
 
 use crate::{
-    app_ctx::{AppMyContext, AppMyContextArc, CustomEvent},
+    app_ctx::{AppMyContext, AppMyContextArc},
     start_event_loop_ui::UiController,
 };
+
+
+
+pub type BoxedCommandUI =
+    Box<dyn FnOnce(&EventLoopWindowTarget<CustomEvent>, &mut UiController) + Send + 'static>;
+pub enum CustomEvent {
+    ExecuteUI(BoxedCommandUI),
+    Exit(),
+}
+
 
 pub fn create_event_loop() -> (AppMyContextArc, JoinHandle<()>) {
     let (tx, rx) = mpsc::channel::<AppMyContextArc>();

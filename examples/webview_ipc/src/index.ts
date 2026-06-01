@@ -1,5 +1,5 @@
 import path from "node:path"; 
-import  { openWebview, startWebIpcServer, WebResponse } from "webview_ipc"
+import  { openWebview, startWebIpcServer, WebControl, WebResponse } from "webview_ipc"
  
 let ipcpath = process.env.IPCNAME ? process.env.IPCNAME : "err";
   
@@ -9,11 +9,7 @@ let ipcpath = process.env.IPCNAME ? process.env.IPCNAME : "err";
 }
 
 async function run() {
-    let web: { close: () => void } = {
-        close: () => {
-
-        }
-    };
+    let web: WebControl
 
     let myipcpath = ipcpath + "mynodeipc";
 
@@ -25,12 +21,21 @@ async function run() {
                 return null;
             }
             let json = req.bodyJson<FParam>();
+
             if(json.cmd == null) return null;
 
             if(json.cmd == "close") {
 
-                web.close();
+                web.close(); 
+                return {
+                    body : Buffer.from("ok"),
+                    content_type : "application/json"
+                }
+            }
 
+            if(json.cmd == "move"){ 
+                let arg = json.params as {top : number, left : number}; 
+                web.move(arg.left, arg.top); 
                 return {
                     body : Buffer.from("ok"),
                     content_type : "application/json"
@@ -38,6 +43,7 @@ async function run() {
             }
 
             console.log(json.cmd);
+            console.log(json.params);
 
             return null;
 

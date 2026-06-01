@@ -47,5 +47,9 @@ Here is the current development status of the project, ordered from the earliest
 - 🕧 Release stable v1.0.0 for production
 - 🕧 Add automated build pipelines for Windows, Linux, and macOS
 - 🕧 Create NPM Package webview_ipc
+- 🕧 Create Window Control IPC
+    - 🕧 Resize
+    - ✅ Move Window
+    - ✅ Close Window
 - ✅ Change project name to `webview_ipc`
 - ✅ Create file server using IPC 

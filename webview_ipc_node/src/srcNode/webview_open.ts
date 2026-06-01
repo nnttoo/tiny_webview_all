@@ -15,17 +15,31 @@ export interface WebViewConfig {
     ipc_server : string,
 }
 
-export async function openWebview(config: WebViewConfig) {
+export interface WebControl{
+    close : ()=>Promise<void>;
+    move : (left : number, top : number)=>Promise<void>
+}
+
+export async function openWebview(config: WebViewConfig) : Promise<WebControl>{
     let cmdRespnse = await sendIpcCmd({
         cmd: "openweb",
         message: JSON.stringify(config),
-    })
+    });
+
+    let win_id = Number(cmdRespnse.message);
 
     return {
         close: async () => {
             await sendIpcCmd({
                 cmd: "closeweb",
                 message: cmdRespnse.message
+            })
+        },
+
+        move : async (left, top)=>{
+             await sendIpcCmd({
+                cmd: "move",
+                message: JSON.stringify({win_id : win_id, left : left, top : top})
             })
         }
     }
