@@ -26,13 +26,13 @@ on:
           - 'Linux64'
           - 'LinuxArm32'
           - 'LinuxArm64'
+          - 'Mac64'
 
 jobs:
   build:
     name: Build for ${{ matrix.job.platform_name }}
     runs-on: ${{ matrix.job.os }}
     
-    # Trigger if commit message contains build token or if manually dispatched
     if: |
       contains(github.event.head_commit.message, '[build ') ||
       contains(github.event.head_commit.message, '[Build ') ||
@@ -76,6 +76,12 @@ jobs:
             platform_name: LinuxArm64
             out_name: webview_ipc_LinuxArm64
 
+          # --- MACOS TARGETS ---
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            platform_name: Mac64
+            out_name: webview_ipc_Mac64
+
     steps:
     - name: Checkout repository
       if: github.event_name != 'workflow_dispatch' || github.event.inputs.platform_filter == 'ALL' || github.event.inputs.platform_filter == matrix.job.platform_name
@@ -114,6 +120,11 @@ jobs:
 
     - name: Cargo Build (Release)
       if: github.event_name != 'workflow_dispatch' || github.event.inputs.platform_filter == 'ALL' || github.event.inputs.platform_filter == matrix.job.platform_name
+      env:
+        PKG_CONFIG_ALLOW_CROSS: "1"
+        PKG_CONFIG_PATH_i686_unknown_linux_gnu: "/usr/lib/i386-linux-gnu/pkgconfig"
+        PKG_CONFIG_PATH_armv7_unknown_linux_gnueabihf: "/usr/lib/arm-linux-gnueabihf/pkgconfig"
+        PKG_CONFIG_PATH_aarch64_unknown_linux_gnu: "/usr/lib/aarch64-linux-gnu/pkgconfig"
       run: cargo build --target ${{ matrix.job.target }} --release
 
     - name: Rename Executable
@@ -156,18 +167,14 @@ jobs:
         INPUT_VERSION="${{ github.event.inputs.custom_version }}"
         COMMIT_MSG="${{ github.event.head_commit.message }}"
         
-        # 1. Check if version is provided via manual dispatch input
         if [ ! -z "$INPUT_VERSION" ]; then
           VERSION="$INPUT_VERSION"
-        # 2. Check if version is inside commit message bracket [build vX.X.X]
         elif [[ "$COMMIT_MSG" =~ \[[bB]uild[[:space:]]+([^\]]+)\] ]]; then
           VERSION="${BASH_REMATCH[1]}"
-        # 3. Fallback to timestamp if no version is detected
         else
           VERSION="v$(date +'%Y.%m.%d-%H%M')"
         fi
         
-        # Trim whitespace
         VERSION=$(echo "$VERSION" | xargs)
         
         echo "version=$VERSION" >> $GITHUB_OUTPUT
