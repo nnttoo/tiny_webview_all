@@ -4,19 +4,35 @@ name: Cross-Compile Build
 on:
   push:
     branches: [ "main", "master" ]
-  workflow_dispatch: 
+  
+  # --- KONFIGURASI SELECTOR MANUAL ---
+  workflow_dispatch:
+    inputs:
+      platform_filter:
+        description: 'Pilih Platform yang Ingin Di-build'
+        required: true
+        default: 'ALL'
+        type: choice
+        options:
+          - 'ALL'
+          - 'Win32'
+          - 'Win64'
+          - 'Linux32'
+          - 'Linux64'
+          - 'LinuxArm32'
+          - 'LinuxArm64'
 
 jobs:
   build:
     name: Build for ${{ matrix.job.platform_name }}
     runs-on: ${{ matrix.job.os }}
     
+    # --- LOGIKA TRIGER & SELECTOR ---
+    # Jalan jika ada commit [build ci] ATAU jika dijalankan manual dan platform sesuai pilihan
     if: |
-      github.event_name == 'workflow_dispatch' || 
-      contains(github.event.head_commit.message, '[build ci]')
+      contains(lowercase(github.event.head_commit.message), '[build ci]') ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform_filter == 'ALL' || github.event.inputs.platform_filter == matrix.job.platform_name))
     
-    # --- PENGATURAN SUBFOLDER ---
-    # Mengatur agar semua langkah 'run' di bawah otomatis berjalan di dalam folder webview_ipc
     defaults:
       run:
         working-directory: ./webview_ipc
@@ -56,7 +72,6 @@ jobs:
             out_name: webview_ipc_LinuxArm64
 
     steps:
-    # Catatan: Langkah checkout ini tetap di root repository untuk mengambil semua berkas
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -65,26 +80,24 @@ jobs:
       with:
         targets: ${{ matrix.job.target }}
 
-    # Langkah ini berjalan di root OS pembantu, tapi apt-get tidak terpengaruh working-directory
     - name: Install Linux GUI Dependencies
       if: contains(matrix.job.os, 'ubuntu')
       run: |
-       if [ "${{ matrix.job.platform_name }}" = "Linux32" ]; then
+        if [ "${{ matrix.job.platform_name }}" = "Linux32" ]; then
           sudo dpkg --add-architecture i386
-          sudo apt-get update # HARUS update lagi setelah add-architecture
-          sudo apt-get install -y gcc-multilib libgtk-3-dev:i386 libwebkit2gtk-4.0-dev:i386 || sudo apt-get install -y gcc-multilib libgtk-3-dev:i386 libwebkit2gtk-4.1-dev:i386
+          sudo apt-get update
+          sudo apt-get install -y gcc-multilib libgtk-3-dev:i386 libwebkit2gtk-4.1-dev:i386 || sudo apt-get install -y gcc-multilib libgtk-3-dev:i386 libwebkit2gtk-4.0-dev:i386
         elif [ "${{ matrix.job.platform_name }}" = "LinuxArm32" ]; then
           sudo apt-get update
-          sudo apt-get install -y gcc-arm-linux-gnueabihf libgtk-3-dev-armhf-cross libwebkit2gtk-4.0-dev-armhf-cross || sudo apt-get install -y gcc-arm-linux-gnueabihf libgtk-3-dev-armhf-cross libwebkit2gtk-4.1-dev-armhf-cross
+          sudo apt-get install -y gcc-arm-linux-gnueabihf libgtk-3-dev-armhf-cross libwebkit2gtk-4.1-dev-armhf-cross || sudo apt-get install -y gcc-arm-linux-gnueabihf libgtk-3-dev-armhf-cross libwebkit2gtk-4.0-dev-armhf-cross
         elif [ "${{ matrix.job.platform_name }}" = "LinuxArm64" ]; then
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu libgtk-3-dev-arm64-cross libwebkit2gtk-4.0-dev-arm64-cross || sudo apt-get install -y gcc-aarch64-linux-gnu libgtk-3-dev-arm64-cross libwebkit2gtk-4.1-dev-arm64-cross
+          sudo apt-get install -y gcc-aarch64-linux-gnu libgtk-3-dev-arm64-cross libwebkit2gtk-4.1-dev-arm64-cross || sudo apt-get install -y gcc-aarch64-linux-gnu libgtk-3-dev-arm64-cross libwebkit2gtk-4.0-dev-arm64-cross
         else
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev || sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev || sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
         fi
 
-    # Membuat folder .cargo di dalam ./webview_ipc/
     - name: Configure Windows Static CRT
       if: matrix.job.use_crt_static == true
       shell: bash
@@ -92,11 +105,9 @@ jobs:
         mkdir -p .cargo
         echo -e "[target.${{ matrix.job.target }}]\nrustflags = [\"-C\", \"target-feature=+crt-static\"]" > .cargo/config.toml
 
-    # Menjalankan cargo build di dalam ./webview_ipc/
     - name: Cargo Build (Release)
       run: cargo build --target ${{ matrix.job.target }} --release
 
-    # Proses pemindahan berkas juga terjadi di dalam ./webview_ipc/
     - name: Rename Executable
       shell: bash
       run: |
@@ -107,9 +118,8 @@ jobs:
           mv target/${{ matrix.job.target }}/release/webview_ipc staging_release/${{ matrix.job.out_name }}
         fi
 
-    # Mengunggah berkas artifact (path disesuaikan secara relatif terhadap working-directory)
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.job.platform_name }}_Release
-        path: ./webview_ipc/staging_release/${{ matrix.job.out_name }}
+        path: webview_ipc/staging_release/${{ matrix.job.out_name }}
