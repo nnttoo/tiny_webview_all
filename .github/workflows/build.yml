@@ -6,11 +6,13 @@ name: Cross-Compile Build & Publish
 on:
   push:
     branches: [ "main", "master" ]
-    # Workflow akan berjalan jika ada push, tetapi proses rilis ke GitHub Release
-    # akan otomatis aktif jika commit mengandung tag '[build ci]' atau dipicu manual.
   
   workflow_dispatch:
     inputs:
+      custom_version:
+        description: 'Target Version (e.g. v1.0.1) - Leave blank for auto timestamp'
+        required: false
+        default: ''
       platform_filter:
         description: 'Select Platform to Build'
         required: true
@@ -30,9 +32,10 @@ jobs:
     name: Build for ${{ matrix.job.platform_name }}
     runs-on: ${{ matrix.job.os }}
     
+    # Trigger if commit message contains build token or if manually dispatched
     if: |
-      contains(github.event.head_commit.message, '[build ci]') ||
-      contains(github.event.head_commit.message, '[Build CI]') ||
+      contains(github.event.head_commit.message, '[build ') ||
+      contains(github.event.head_commit.message, '[Build ') ||
       github.event_name == 'workflow_dispatch'
     
     defaults:
@@ -133,10 +136,10 @@ jobs:
 
   publish_release:
     name: Create & Publish GitHub Release
-    needs: build # Menunggu sampai seluruh matrix build selesai
+    needs: build
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Diwajibkan agar runner bisa membuat rilis baru
+      contents: write
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -145,21 +148,36 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         path: ./downloaded_artifacts
-        merge-multiple: true # Menggabungkan semua biner aplikasi ke satu folder tunggal
+        merge-multiple: true
 
-    - name: Generate Release Tag & Name
-      id: release_meta
+    - name: Extract Version From Commit Message or Input
+      id: get_version
       run: |
-        # Membuat tag dinamis menggunakan tanggal jam menit (Contoh: v2026.06.01-1415)
-        TAG_NAME="v$(date +'%Y.%m.%d-%H%M')"
-        echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
-        echo "Generated Release Tag: $TAG_NAME"
+        INPUT_VERSION="${{ github.event.inputs.custom_version }}"
+        COMMIT_MSG="${{ github.event.head_commit.message }}"
+        
+        # 1. Check if version is provided via manual dispatch input
+        if [ ! -z "$INPUT_VERSION" ]; then
+          VERSION="$INPUT_VERSION"
+        # 2. Check if version is inside commit message bracket [build vX.X.X]
+        elif [[ "$COMMIT_MSG" =~ \[[bB]uild[[:space:]]+([^\]]+)\] ]]; then
+          VERSION="${BASH_REMATCH[1]}"
+        # 3. Fallback to timestamp if no version is detected
+        else
+          VERSION="v$(date +'%Y.%m.%d-%H%M')"
+        fi
+        
+        # Trim whitespace
+        VERSION=$(echo "$VERSION" | xargs)
+        
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Extracted Version: $VERSION"
 
     - name: Publish to GitHub Releases
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ steps.release_meta.outputs.tag }}
-        name: Release ${{ steps.release_meta.outputs.tag }}
+        tag_name: ${{ steps.get_version.outputs.version }}
+        name: Release ${{ steps.get_version.outputs.version }}
         body: |
           Automated cross-compile build for webview_ipc.
           Commit message: ${{ github.event.head_commit.message }}
