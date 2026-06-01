@@ -5,11 +5,10 @@ on:
   push:
     branches: [ "main", "master" ]
   
-  # --- KONFIGURASI SELECTOR MANUAL ---
   workflow_dispatch:
     inputs:
       platform_filter:
-        description: 'Pilih Platform yang Ingin Di-build'
+        description: 'Select Platform'
         required: true
         default: 'ALL'
         type: choice
@@ -27,10 +26,9 @@ jobs:
     name: Build for ${{ matrix.job.platform_name }}
     runs-on: ${{ matrix.job.os }}
     
-    # --- LOGIKA TRIGER & SELECTOR ---
-    # Jalan jika ada commit [build ci] ATAU jika dijalankan manual dan platform sesuai pilihan
+    # Menggunakan fungsi 'lower' yang valid di GitHub Actions
     if: |
-      contains(lowercase(github.event.head_commit.message), '[build ci]') ||
+      contains(lower(github.event.head_commit.message), '[build ci]') ||
       (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform_filter == 'ALL' || github.event.inputs.platform_filter == matrix.job.platform_name))
     
     defaults:
