@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       platform_filter:
-        description: 'Select Platform'
+        description: 'Select Platform to Build'
         required: true
         default: 'ALL'
         type: choice
@@ -26,9 +26,10 @@ jobs:
     name: Build for ${{ matrix.job.platform_name }}
     runs-on: ${{ matrix.job.os }}
     
-    # Menggunakan fungsi 'lower' yang valid di GitHub Actions
+    # Simple and robust trigger logic (No experimental text manipulation functions)
     if: |
-      contains(lower(github.event.head_commit.message), '[build ci]') ||
+      contains(github.event.head_commit.message, '[build ci]') ||
+      contains(github.event.head_commit.message, '[Build CI]') ||
       (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform_filter == 'ALL' || github.event.inputs.platform_filter == matrix.job.platform_name))
     
     defaults:
