@@ -1,0 +1,12 @@
+{
+  "title": "Webview Ipc",
+  "width": 900,
+  "height": 700,
+  "is_frameless": false,
+  "is_resizable": true,
+  "is_maximize": false,
+  "is_debug": true,
+  "is_always_ontop": false,
+  "is_fullscreen": false,
+  "public_folder": "./public"
+}
