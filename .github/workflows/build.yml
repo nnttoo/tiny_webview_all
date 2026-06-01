@@ -104,14 +104,19 @@ jobs:
         elif [ "${{ matrix.job.platform_name }}" = "LinuxArm32" ]; then
           sudo dpkg --add-architecture armhf
           
-          # Tambahkan repositori ubuntu-ports untuk armhf
-          sudo bishops_ring=noble
+          # Paksa repositori bawaan (baik format .list maupun .sources) HANYA melayani amd64
+          sudo sed -i 's/deb http/deb [arch=amd64] http/g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
+          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+            sudo sed -i 's/Architectures: amd64/Architectures: amd64/g' /etc/apt/sources.list.d/ubuntu.sources
+            # Jika belum ada spesifikasi arsitektur, tambahkan secara eksplisit agar tidak bocor ke armhf
+            sudo sed -i '/^Suites:/i Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
+          fi
+          
+          # Bersihkan dan tambah ports.ubuntu.com khusus untuk armhf
+          sudo rm -f /etc/apt/sources.list.d/ubuntu-ports.list
           echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports/ noble main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/ubuntu-ports.list
           echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports/ noble-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/ubuntu-ports.list
           echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports/ noble-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/ubuntu-ports.list
-          
-          # Batasi repositori utama agar hanya membaca amd64 supaya tidak konflik
-          sudo sed -i 's/deb http/deb [arch=amd64] http/g' /etc/apt/sources.list.d/* /etc/apt/sources.list || true
           
           sudo apt-get update
           sudo apt-get install -y gcc-arm-linux-gnueabihf libgtk-3-dev:armhf libwebkit2gtk-4.1-dev:armhf || sudo apt-get install -y gcc-arm-linux-gnueabihf libgtk-3-dev:armhf libwebkit2gtk-4.0-dev:armhf
@@ -119,13 +124,19 @@ jobs:
         elif [ "${{ matrix.job.platform_name }}" = "LinuxArm64" ]; then
           sudo dpkg --add-architecture arm64
           
-          # Tambahkan repositori ubuntu-ports untuk arm64
+          # Paksa repositori bawaan (baik format .list maupun .sources) HANYA melayani amd64
+          sudo sed -i 's/deb http/deb [arch=amd64] http/g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
+          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+            # Hapus duplikasi rule arsitektur jika ada, lalu paksa isi dengan amd64 saja
+            sudo sed -i '/^Architectures:/d' /etc/apt/sources.list.d/ubuntu.sources
+            sudo sed -i '/^Types:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
+          fi
+          
+          # Bersihkan dan tambah ports.ubuntu.com khusus untuk arm64
+          sudo rm -f /etc/apt/sources.list.d/ubuntu-ports.list
           echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ noble main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/ubuntu-ports.list
           echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ noble-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/ubuntu-ports.list
           echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ noble-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/ubuntu-ports.list
-          
-          # Batasi repositori utama agar hanya membaca amd64 supaya tidak konflik
-          sudo sed -i 's/deb http/deb [arch=amd64] http/g' /etc/apt/sources.list.d/* /etc/apt/sources.list || true
           
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu libgtk-3-dev:arm64 libwebkit2gtk-4.1-dev:arm64 || sudo apt-get install -y gcc-aarch64-linux-gnu libgtk-3-dev:arm64 libwebkit2gtk-4.0-dev:arm64
