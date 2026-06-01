@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "run": "tsx ./src/index.ts"
+    "run": "tsx ./src/index.ts",
+    "deploy" : "tsx ./src/builder/deploy.ts"
   },
   "author": "",
   "license": "ISC",

@@ -1,5 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::time::Duration;
+
+use tokio::time::sleep;
+
 use crate::{
     exec_comand::exec_command,
     ipc_server::IpcRoute,
@@ -38,6 +42,19 @@ async fn main() {
         .add_route("select_folder", select_folder);
 
     ipcroute.create_server(app_ctx.clone());
-    tokio::spawn(exec_command(app_ctx));
+    tokio::spawn(exec_command(app_ctx.clone()));
+ 
+    tokio::spawn(async move {   
+        sleep(Duration::from_millis(10000)).await;
+
+        let ctx_clone = app_ctx.clone();
+        app_ctx.call_ui_fun(move |_,ui_controller|{
+            if ui_controller.is_window_empty(){
+                ctx_clone.req_stop_all("no windows openned");
+            }
+        });
+
+    });
+
     _ = mytread.await;
 }

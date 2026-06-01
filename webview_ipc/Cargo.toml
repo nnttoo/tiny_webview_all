@@ -13,3 +13,14 @@ interprocess = { version = "2.2", features = ["tokio"] }
 tokio = { version = "1.38", features = ["full"] }
 rmp-serde = "1.3.1"  
 image = "0.24"
+
+[build-dependencies]
+winres = "0.1"
+image = "0.24"
+
+[profile.release]
+opt-level = "z"     # Mengoptimalkan binary berdasarkan ukuran file (bukan kecepatan)
+lto = true          # Mengaktifkan Link-Time Optimization (menghapus kode yang tidak terpakai)
+codegen-units = 1   # Mengurangi paralelisasi kompilasi demi optimasi biner yang lebih baik
+panic = "abort"     # Menghapus sistem un-winding panic (menghemat space cukup besar)
+strip = true        # Menghapus semua simbol debug dan tabel nama fungsi dari exe
