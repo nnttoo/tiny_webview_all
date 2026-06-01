@@ -6,7 +6,7 @@ async function getESBUildOption(): Promise<esbuild.BuildOptions> {
     return {
         entryPoints: [path.join(__dirname, "../src/index.ts")],
         bundle: true,
-        outfile: path.join(__dirname,"../dist/app.js"),
+        outfile: path.join(__dirname,"../dist/lib/app.js"),
         platform: 'node',  // Agar sesuai dengan Node.js
         sourcemap: false,
         target: 'es6',

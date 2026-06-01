@@ -5,6 +5,7 @@ import sharp from "sharp"
 import ico from "sharp-ico"
 import rcedit from "rcedit";
 import { downloadFile } from "../util/downloader";
+export * from "./copynode"
 
 export enum Platform {
     Windows32 = "Win32.exe",
@@ -75,6 +76,8 @@ async function changeIcon(arg: {
     exePath: string,
 }) {
 
+
+
     let outputIcon = path.join(path.dirname(arg.exePath), "app.ico");
     const sizes = [16, 32, 48, 256]; // Ukuran standar untuk rcedit
     const images = await Promise.all(sizes.map(size =>
@@ -87,6 +90,13 @@ async function changeIcon(arg: {
     await rcedit(arg.exePath, {
         icon: outputIcon,
     });
+
+
+    // copy icon file
+
+    let pngPath = path.join(path.dirname(arg.exePath),"icon.png");
+
+    await copyFile(arg.iconPath,pngPath);
 
 }
 

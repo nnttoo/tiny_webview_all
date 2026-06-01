@@ -1,4 +1,18 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -12,6 +26,7 @@ const sharp_1 = __importDefault(require("sharp"));
 const sharp_ico_1 = __importDefault(require("sharp-ico"));
 const rcedit_1 = __importDefault(require("rcedit"));
 const downloader_1 = require("../util/downloader");
+__exportStar(require("./copynode"), exports);
 var Platform;
 (function (Platform) {
     Platform["Windows32"] = "Win32.exe";
@@ -64,6 +79,9 @@ async function changeIcon(arg) {
     await (0, rcedit_1.default)(arg.exePath, {
         icon: outputIcon,
     });
+    // copy icon file
+    let pngPath = node_path_1.default.join(node_path_1.default.dirname(arg.exePath), "icon.png");
+    await (0, promises_1.copyFile)(arg.iconPath, pngPath);
 }
 async function deploy_exe(arg) {
     await copyExeFile(arg.exeFilePath, arg.platform);

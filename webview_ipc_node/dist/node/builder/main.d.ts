@@ -1,3 +1,4 @@
+export * from "./copynode";
 export declare enum Platform {
     Windows32 = "Win32.exe",
     Windows64 = "Win64.exe",
