@@ -8,7 +8,7 @@ async function deploy() {
         exeFilePath: path.join(__dirname, "../../dist/myApp.exe"),
         iconPath : path.join(__dirname,"../../icon.png"),
         startCommand : "dir",
-        platform : Platform.Windows64
+        platform : Platform.Windows32
     });
 }
 

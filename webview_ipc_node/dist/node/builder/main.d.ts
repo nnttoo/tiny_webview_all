@@ -1,10 +1,11 @@
 export declare enum Platform {
-    Windows32 = "WINDOWS_32",
-    Windows64 = "WINDOWS_64",
-    Linux32 = "LINUX_32",
-    Linux64 = "LINUX_64",
-    LinuxArm32 = "LINUX_ARM32",
-    LinuxArm64 = "LINUX_ARM64"
+    Windows32 = "Win32.exe",
+    Windows64 = "Win64.exe",
+    Linux32 = "Linux32",
+    Linux64 = "Linux64",
+    LinuxArm32 = "LinuxArm32",
+    LinuxArm64 = "LinuxArm64",
+    Mac64 = "MAC_64"
 }
 export declare function deploy_exe(arg: {
     exeFilePath: string;
