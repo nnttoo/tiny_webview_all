@@ -26,8 +26,6 @@ mod utils_tools;
 
 #[tokio::main]
 async fn main() {
-    println!("Hello Async!");
-
     let (app_ctx, mytread) = create_event_loop();
     set_appctx_static(app_ctx.clone());
 

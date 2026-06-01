@@ -1,7 +1,8 @@
 use std::sync::{Arc, mpsc};
 
 use crate::{
-    app_ctx::AppMyContext, open_web_icon::load_dynamic_png, open_web_ipc::webvie_ipc, start_event_loop::CustomEvent, start_event_loop_ui::UiController
+    app_ctx::AppMyContext, open_web_icon::load_dynamic_png, open_web_ipc::webvie_ipc,
+    start_event_loop::CustomEvent, start_event_loop_ui::UiController,
 };
 use serde::{Deserialize, Serialize};
 use tao::{
@@ -33,12 +34,10 @@ pub fn open_web(
 ) -> Result<u32, Box<dyn std::error::Error>> {
     let (tx, rx) = mpsc::channel::<u32>();
 
-    let config = serde_json::from_str::<BrowserConfig>(&configstr)?; 
- 
+    let config = serde_json::from_str::<BrowserConfig>(&configstr)?;
+
     let command = Box::new(
         move |elwt: &EventLoopWindowTarget<CustomEvent>, ui_controller: &mut UiController| {
- 
-
             let winid = (|| -> Result<u32, Box<dyn std::error::Error>> {
                 let mut builder = WindowBuilder::new()
                     .with_title(config.title.to_string())
@@ -60,12 +59,16 @@ pub fn open_web(
                 let mut webview = WebViewBuilder::new()
                     .with_devtools(config.is_debug)
                     .with_autoplay(true)
-                    .with_https_scheme(true)
                     .with_permission_handler(|kind| {
                         println!("Otomatis mengizinkan: {:?}", kind);
                         PermissionResponse::Allow
                     })
                     .with_url(config.url.to_string());
+
+                #[cfg(target_os = "windows")]
+                {
+                    webview = webview.with_https_scheme(true);
+                }
 
                 webview = webvie_ipc(&config, webview);
 
@@ -98,7 +101,7 @@ pub fn open_web(
             }
         },
     );
- 
+
     _ = app_ctx
         .even_loop_poxy
         .send_event(CustomEvent::ExecuteUI(command));

@@ -1,9 +1,12 @@
-use crate::{app_ctx::AppMyContextArc, utils_tools::get_exe_folder};
+use crate::{app_ctx::AppMyContextArc, utils_tools::get_exe_folder}; 
+
+ 
+
 use std::{
     fs,
     io::{BufRead, BufReader},
     path::PathBuf,
-    process::{Command, Stdio},
+    process::{Child, Command, Stdio},
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -35,64 +38,52 @@ fn get_cmd_content() -> String {
 
     ctn
 }
+ 
+ 
+fn kill_native(pid: u32 ) {
+    std::thread::spawn(move || { 
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            // Jalankan taskkill tanpa memunculkan jendela konsol baru
+            let _ = Command::new("taskkill")
+                .args(["/F", "/T", "/PID", &pid.to_string()])
+                .creation_flags(0x08000000) 
+                .status();
+        }
 
-// pub fn execute_command(cmd_text: &str) -> Result<String, String> {
-//     let mut command = if cfg!(target_os = "windows") {
-//         let mut c = Command::new("cmd");
-//         c.args(["/C", cmd_text]);
-//         c
-//     } else {
-//         let mut c = Command::new("sh");
-//         c.args(["-c", cmd_text]);
-//         c
-//     };
+        #[cfg(not(target_os = "windows"))]
+        {
+            // Di Linux, jalankan kill -9 dengan tanda minus pada PID untuk membunuh seluruh Process Group
+            let pgid = format!("-{}", pid);
+            let _ = Command::new("kill")
+                .args(["-9", &pgid])
+                .status();
+        }
+    });
+}
 
-//     // Jalankan perintah
-//     match command.output() {
-//         Ok(output) => {
-//             if output.status.success() {
-//                 String::from_utf8(output.stdout).map_err(|e| format!(" UTF-8 invalid: {}", e))
-//             } else {
-//                 let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
-//                 Err(format!("Command error:\n{}", err_msg))
-//             }
-//         }
-//         Err(e) => Err(format!("Failed shell execute: {}", e)),
-//     }
-// }
-
-fn waiting_to_kill(pid: u32, exit_signal: Arc<AtomicBool>) {
+fn waiting_to_kill(mut child:  Child, exit_signal: Arc<AtomicBool>) {
     loop {
         if exit_signal.load(Ordering::Relaxed) {
-            #[cfg(target_os = "windows")]
-            {
-                use std::os::windows::process::CommandExt;
-                let _ = Command::new("taskkill")
-                    .args(["/F", "/T", "/PID", &pid.to_string()])
-                    .creation_flags(0x08000000)
-                    .spawn();
-            }
+            println!("kill child");
 
-            #[cfg(not(target_os = "windows"))]
-            {
-                // Di Linux, kirim SIGKILL (9) ke seluruh Process Group (-PID)
-                // Nilai negatif dari PID memberi tahu OS untuk membunuh grup tersebut
-                unsafe {
-                    libc::kill(-(pid as libc::pid_t), libc::SIGKILL);
-                }
-            }
+            kill_native(child.id());
+            
             break;
         }
 
         thread::sleep(Duration::from_millis(1000));
     }
+
+    _=child.wait();
 }
 
 pub fn execute_command_live(
     cmd_text: &str,
     ipcname: String,
     exit_signal: Arc<AtomicBool>,
-) -> Result<String, String> {
+) -> Result<&str, String> {
     let mut command = if cfg!(target_os = "windows") {
         let mut c = Command::new("cmd");
         c.args(["/C", cmd_text]);
@@ -139,25 +130,14 @@ pub fn execute_command_live(
             }
         }
     });
-
-    let pid = child.id();
-    waiting_to_kill(pid, exit_signal);
+ 
+    waiting_to_kill(child, exit_signal);
 
     let _ = stderr_handle.join();
     let _ = stderr_handle2.join();
 
-    let status = child
-        .wait()
-        .map_err(|e| format!("Error waiting for process: {}", e))?;
-
-    if status.success() {
-        Ok("".to_string())
-    } else {
-        Err(format!(
-            "Command exited with companion error status: {}",
-            status
-        ))
-    }
+    Ok("")
+    
 }
 
 pub async fn exec_command(appctx: AppMyContextArc) {
