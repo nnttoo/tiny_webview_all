@@ -6,7 +6,7 @@
   "scripts": {
     "run": "cargo run",
     "client": "cd ../examples/webview_ipc && npm run run",
-    "dev": "run-p -l --silent run client",
+    "dev": "run-p -l --silent run client", 
     "build_release" : "cargo build --release"
   },
   "author": "",

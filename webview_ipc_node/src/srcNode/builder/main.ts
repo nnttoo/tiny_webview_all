@@ -5,14 +5,16 @@ import sharp from "sharp"
 import ico from "sharp-ico" 
 import rcedit from "rcedit";
 
-export enum Platform {
+enum Platform {
     Windows32 = "WINDOWS_32",
     Windows64 = "WINDOWS_64",
     Linux32 = "LINUX_32",
     Linux64 = "LINUX_64",
     LinuxArm32 = "LINUX_ARM32",
-    LinuxArm64 = "LINUX_ARM64" // Fixed typo from 'argm64' to 'Arm64'
+    LinuxArm64 = "LINUX_ARM64",
+    Mac64 = "MAC_64",       // Intel-based Macs 
 }
+
 
 async function copyExeFile(exe_dest_path: string, platform : Platform) {
 
