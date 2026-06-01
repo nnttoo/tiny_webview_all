@@ -144,15 +144,8 @@ jobs:
         else
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev || sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
-        fi
-
-    - name: Configure Windows Static CRT
-      if: (github.event_name != 'workflow_dispatch' || github.event.inputs.platform_filter == 'ALL' || github.event.inputs.platform_filter == matrix.job.platform_name) && matrix.job.use_crt_static == true
-      shell: bash
-      run: |
-        mkdir -p .cargo
-        echo -e "[target.${{ matrix.job.target }}]\nrustflags = [\"-C\", \"target-feature=+crt-static\"]" > .cargo/config.toml
-
+        fi 
+        
     - name: Cargo Build (Release)
       if: github.event_name != 'workflow_dispatch' || github.event.inputs.platform_filter == 'ALL' || github.event.inputs.platform_filter == matrix.job.platform_name
       env:
