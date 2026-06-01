@@ -59,3 +59,12 @@ Here is the current development status of the project, ordered from the earliest
     - ✅ Close Window
 - ✅ Change project name to `webview_ipc`
 - ✅ Create file server using IPC 
+
+
+## Note
+
+Commit with message For triger github action
+
+```
+[build ci]
+``
