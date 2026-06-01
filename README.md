@@ -47,7 +47,7 @@ Here is the current development status of the project, ordered from the earliest
 - Release stable v1.0.0 for production
 - Add automated build pipelines for Windows, Linux, and macOS
 - 🕧 Create NPM Package webview_ipc
-    - Create Build action
+    - ✅ Create Github action
     - 🕧 create Builder to deploy
 - ✅ Create Window Control IPC
     - ✅ select folder
@@ -66,5 +66,5 @@ Here is the current development status of the project, ordered from the earliest
 Commit with message For triger github action
 
 ```
-[build ci]
+your commit message [build v1.0.2]
 ``
