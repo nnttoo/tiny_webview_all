@@ -20,6 +20,18 @@ async function openWebview(config) {
                 cmd: "move",
                 message: JSON.stringify({ win_id: win_id, left: left, top: top })
             });
+        },
+        resize: async (w, h) => {
+            await (0, send_to_ipc_1.sendIpcCmd)({
+                cmd: "resize",
+                message: JSON.stringify({ win_id: win_id, width: w, height: h })
+            });
+        },
+        minimize: async (isminimize) => {
+            await (0, send_to_ipc_1.sendIpcCmd)({
+                cmd: "minimize",
+                message: JSON.stringify({ win_id: win_id, minimize: isminimize })
+            });
         }
     };
 }

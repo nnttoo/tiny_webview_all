@@ -1,6 +1,6 @@
 import { sendIpcCmd } from "./send_to_ipc"
 
- 
+
 export interface WebViewConfig {
     url: string,
     title: string,
@@ -9,18 +9,20 @@ export interface WebViewConfig {
     is_frameless: boolean,
     is_maximize: boolean,
     is_debug: boolean,
-    is_resizable : boolean,
-    is_fullscreen : boolean,
-    is_always_ontop : boolean,
-    ipc_server : string,
+    is_resizable: boolean,
+    is_fullscreen: boolean,
+    is_always_ontop: boolean,
+    ipc_server: string,
 }
 
-export interface WebControl{
-    close : ()=>Promise<void>;
-    move : (left : number, top : number)=>Promise<void>
+export interface WebControl {
+    close: () => Promise<void>;
+    move: (left: number, top: number) => Promise<void>
+    resize: (width: number, height: number) => Promise<void>
+    minimize: (minimize : boolean) => Promise<void>
 }
 
-export async function openWebview(config: WebViewConfig) : Promise<WebControl>{
+export async function openWebview(config: WebViewConfig): Promise<WebControl> {
     let cmdRespnse = await sendIpcCmd({
         cmd: "openweb",
         message: JSON.stringify(config),
@@ -36,10 +38,23 @@ export async function openWebview(config: WebViewConfig) : Promise<WebControl>{
             })
         },
 
-        move : async (left, top)=>{
-             await sendIpcCmd({
+        move: async (left, top) => {
+            await sendIpcCmd({
                 cmd: "move",
-                message: JSON.stringify({win_id : win_id, left : left, top : top})
+                message: JSON.stringify({ win_id: win_id, left: left, top: top })
+            })
+        },
+
+        resize: async (w, h) => {
+            await sendIpcCmd({
+                cmd: "resize",
+                message: JSON.stringify({ win_id: win_id, width: w, height: h })
+            })
+        },
+        minimize : async (isminimize : boolean)=>{
+             await sendIpcCmd({
+                cmd: "minimize",
+                message: JSON.stringify({ win_id: win_id, minimize : isminimize})
             })
         }
     }

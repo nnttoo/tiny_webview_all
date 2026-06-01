@@ -3,7 +3,7 @@
 use crate::{
     exec_comand::exec_command,
     ipc_server::IpcRoute,
-    main_routefun::{set_appctx_static, web_close, web_move, web_open},
+    main_routefun::{set_appctx_static, web_close, web_minimize, web_move, web_open, web_resize},
     start_event_loop::create_event_loop,
 };
 
@@ -30,7 +30,9 @@ async fn main() {
     let ipcroute = IpcRoute::new()
         .add_route("openweb", web_open)
         .add_route("closeweb", web_close)
-        .add_route("move", web_move);
+        .add_route("move", web_move)
+        .add_route("resize", web_resize)
+        .add_route("minimize", web_minimize);
 
     ipcroute.create_server(app_ctx.clone());
     tokio::spawn(exec_command(app_ctx));

@@ -44,11 +44,13 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 Here is the current development status of the project, ordered from the earliest milestones to upcoming features:
 
-- 🕧 Release stable v1.0.0 for production
-- 🕧 Add automated build pipelines for Windows, Linux, and macOS
-- 🕧 Create NPM Package webview_ipc
+- Release stable v1.0.0 for production
+- Add automated build pipelines for Windows, Linux, and macOS
+- Create NPM Package webview_ipc
 - 🕧 Create Window Control IPC
-    - 🕧 Resize
+    - 🕧 maximize
+    - ✅ minimize
+    - ✅ Resize
     - ✅ Move Window
     - ✅ Close Window
 - ✅ Change project name to `webview_ipc`

@@ -21,14 +21,14 @@ pub struct UiControllerItem {
 
 pub struct UiController {
     hash_map: HashMap<WindowId, UiControllerItem>,
-    pub app_ctx : AppMyContextArc
+    pub app_ctx: AppMyContextArc,
 }
 
 impl UiController {
-    pub fn new(appctx : AppMyContextArc) -> Self {
+    pub fn new(appctx: AppMyContextArc) -> Self {
         Self {
             hash_map: HashMap::new(),
-            app_ctx : appctx
+            app_ctx: appctx,
         }
     }
 
@@ -47,9 +47,8 @@ impl UiController {
         wid
     }
 
-    pub fn remove_by_id(&mut self, win_id : u32){
-
-        let id : Option<WindowId> = (||{
+    pub fn remove_by_id(&mut self, win_id: u32) {
+        let id: Option<WindowId> = (|| {
             for (key, item) in self.hash_map.iter() {
                 if item.window_id == win_id {
                     return Some(key.clone());
@@ -64,35 +63,27 @@ impl UiController {
         };
 
         self.remove(id);
-
     }
 
-    pub fn is_window_empty(&self)->bool{
+    pub fn is_window_empty(&self) -> bool {
         return self.hash_map.is_empty();
     }
 
-    pub fn remove(&mut self, wi : WindowId){
+    pub fn remove(&mut self, wi: WindowId) {
         self.hash_map.remove(&wi);
 
-        if self.is_window_empty(){
+        if self.is_window_empty() {
             self.app_ctx.req_stop_all("all windows closed");
         }
-        
-    } 
-
-    pub fn get_window_byid<F>(&self, wi : u32, cb : F) ->Result<(),&str>
-        where F : FnOnce(&UiControllerItem)
-     {
-        for item in self.hash_map.iter() {
-            if item.1.window_id == wi {
-
-                cb(&item.1);
-
-                return Ok(());
-            }
-        }
-         
-         Err("cant get window")
     }
 
+    pub fn get_window_byid(&self, wi: u32) -> Result<&UiControllerItem, &str> {
+        for item in self.hash_map.iter() {
+            if item.1.window_id == wi {
+                return Ok(&item.1);
+            }
+        }
+
+        Err("cant get window")
+    }
 }
