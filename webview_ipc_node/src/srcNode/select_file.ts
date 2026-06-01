@@ -10,9 +10,22 @@ export interface FileSelectorArg {
 }
 
 
-export   function selectFile(arg: FileSelectorArg) {
+export interface FolderSelectorArg {
+    root_dir: String, 
+}
+
+
+export function selectFile(arg: FileSelectorArg) {
     return sendIpcCmd({
         cmd: "select_file",
+        message: JSON.stringify(arg)
+    })
+}
+
+
+export function selectFolder(arg: FolderSelectorArg) {
+    return sendIpcCmd({
+        cmd: "select_folder",
         message: JSON.stringify(arg)
     })
 }

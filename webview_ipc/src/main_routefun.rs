@@ -183,17 +183,36 @@ pub async fn select_file(msg: CmdMessage) -> CmdMessage {
         pub file_types: Vec<FileType>,
     }
 
-    let  Ok(arg) = serde_json::from_str::<Arg>(&msg.message) else {
-        return  cmd_msg("json parse error");
+    let Ok(arg) = serde_json::from_str::<Arg>(&msg.message) else {
+        return cmd_msg("json parse error");
     };
 
-     let mut file_d = FileDialog::new().set_directory(arg.root_dir);
+    let mut file_d = FileDialog::new().set_directory(arg.root_dir);
 
     for item in arg.file_types {
         file_d = file_d.add_filter(item.file_name, &item.ext);
     }
 
     let Some(file) = file_d.pick_file() else {
+        return cmd_msg("");
+    };
+
+    cmd_msg(&file.to_string_lossy())
+}
+
+pub async fn select_folder(msg: CmdMessage) -> CmdMessage {
+    #[derive(Deserialize)]
+    struct Arg {
+        pub root_dir: String,
+    }
+
+    let Ok(arg) = serde_json::from_str::<Arg>(&msg.message) else {
+        return cmd_msg("json parse error");
+    };
+
+    let file_d = FileDialog::new().set_directory(arg.root_dir);
+
+    let Some(file) = file_d.pick_folder() else {
         return cmd_msg("");
     };
 

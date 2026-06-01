@@ -1,5 +1,5 @@
 import path from "node:path";
-import { openWebview, selectFile, startWebIpcServer, WebControl, WebResponse } from "webview_ipc"
+import { openWebview, selectFile, selectFolder, startWebIpcServer, WebControl, WebResponse } from "webview_ipc"
 
 let ipcpath = process.env.IPCNAME ? process.env.IPCNAME : "err";
 
@@ -61,11 +61,18 @@ async function run() {
                 web.maximize(json.params as boolean);
                 return simple_result("ok");
 
-            }
+            } 
 
             if (json.cmd == "select_file") {
                  
                 let file = await selectFile(json.params);
+                return simple_result(file.message);
+
+            }
+
+            if (json.cmd == "select_folder") {
+                 
+                let file = await selectFolder(json.params);
                 return simple_result(file.message);
 
             }

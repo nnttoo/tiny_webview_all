@@ -95,8 +95,8 @@ function intButton() {
     }
     btn("#openfolder").onclick = async () => {
         let apiresult = await reqApi({
-            cmd: "openfolder",
-            params: true
+            cmd: "select_folder",
+            params: {root_dir : "D:\\"}
         });
 
         ipt("#ipt_dialog_folder").value = apiresult;
