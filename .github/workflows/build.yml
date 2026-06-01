@@ -1,9 +1,13 @@
 # .github/workflows/build.yml
-name: Cross-Compile Build
+# Haryanto 01 June 2026
+
+name: Cross-Compile Build & Publish
 
 on:
   push:
     branches: [ "main", "master" ]
+    # Workflow akan berjalan jika ada push, tetapi proses rilis ke GitHub Release
+    # akan otomatis aktif jika commit mengandung tag '[build ci]' atau dipicu manual.
   
   workflow_dispatch:
     inputs:
@@ -26,8 +30,6 @@ jobs:
     name: Build for ${{ matrix.job.platform_name }}
     runs-on: ${{ matrix.job.os }}
     
-    # Cek pesan commit dipindahkan ke tingkat job.
-    # Penyaringan platform workflow_dispatch ditangani di dalam step menggunakan 'matrix' yang sudah valid.
     if: |
       contains(github.event.head_commit.message, '[build ci]') ||
       contains(github.event.head_commit.message, '[Build CI]') ||
@@ -72,17 +74,6 @@ jobs:
             out_name: webview_ipc_LinuxArm64
 
     steps:
-    # Menggunakan properti 'if' di step pertama untuk membatasi eksekusi berdasarkan input platform_filter
-    - name: Check Platform Filter
-      if: |
-        github.event_name == 'workflow_dispatch' && 
-        github.event.inputs.platform_filter != 'ALL' && 
-        github.event.inputs.platform_filter != matrix.job.platform_name
-      run: |
-        echo "Skipping build for ${{ matrix.job.platform_name }} because filter is set to ${{ github.event.inputs.platform_filter }}"
-        exit 0 # Menghentikan langkah ini, namun langkah berikutnya perlu diproteksi atau job disesuaikan
-
-    # Cara paling aman dan bersih tanpa membiarkan step kosong berjalan adalah menyisipkan kondisi filter di setiap step utama:
     - name: Checkout repository
       if: github.event_name != 'workflow_dispatch' || github.event.inputs.platform_filter == 'ALL' || github.event.inputs.platform_filter == matrix.job.platform_name
       uses: actions/checkout@v4
@@ -139,3 +130,39 @@ jobs:
       with:
         name: ${{ matrix.job.platform_name }}_Release
         path: webview_ipc/staging_release/${{ matrix.job.out_name }}
+
+  publish_release:
+    name: Create & Publish GitHub Release
+    needs: build # Menunggu sampai seluruh matrix build selesai
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Diwajibkan agar runner bisa membuat rilis baru
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./downloaded_artifacts
+        merge-multiple: true # Menggabungkan semua biner aplikasi ke satu folder tunggal
+
+    - name: Generate Release Tag & Name
+      id: release_meta
+      run: |
+        # Membuat tag dinamis menggunakan tanggal jam menit (Contoh: v2026.06.01-1415)
+        TAG_NAME="v$(date +'%Y.%m.%d-%H%M')"
+        echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+        echo "Generated Release Tag: $TAG_NAME"
+
+    - name: Publish to GitHub Releases
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.release_meta.outputs.tag }}
+        name: Release ${{ steps.release_meta.outputs.tag }}
+        body: |
+          Automated cross-compile build for webview_ipc.
+          Commit message: ${{ github.event.head_commit.message }}
+        draft: false
+        prerelease: false
+        files: ./downloaded_artifacts/*
