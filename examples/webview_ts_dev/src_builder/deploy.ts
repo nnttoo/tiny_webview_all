@@ -22,7 +22,7 @@ async function deploy() {
         exeFilePath: path.join(distFolder, "myApp.exe"),
         iconPath: path.join(__dirname, "../icon.png"),
         startCommand: ".\\lib\\node.exe ./lib/app.js",
-        platform: Platform.Windows32
+        platform: Platform.Windows64
     });
 
     await copyHtmlFolder(distFolder);

@@ -4,6 +4,7 @@ use crate::{
     app_ctx::AppMyContext, open_web_icon::load_dynamic_png, open_web_ipc::webvie_ipc,
     start_event_loop::CustomEvent, start_event_loop_ui::UiController,
 };
+use native_dialog::{MessageDialog, MessageType};
 use serde::{Deserialize, Serialize};
 use tao::{
     event_loop::EventLoopWindowTarget,
@@ -95,8 +96,28 @@ pub fn open_web(
                 Ok(winid) => {
                     _ = tx.send(winid);
                 }
-                Err(_) => {
+                Err(e) => {
                     _ = tx.send(0);
+
+                    println!("Failed to initialize WebView runtime: {:?}", e);
+
+                    // Ask the user if they want to download the runtime
+                    let download_confirmed = MessageDialog::new()
+                    .set_type(MessageType::Warning)
+                    .set_title("WebView2 Runtime Required")
+                    .set_text("The required WebView2 runtime was not found.\n\nWould you like to open the official Microsoft page to download and install it?")
+                    .show_confirm() // Returns true if user clicks Yes/OK
+                    .unwrap_or(false);
+
+                    if download_confirmed {
+                        let download_url = "https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section";
+                        println!("Opening download link: {}", download_url);
+
+                        // Open the link automatically in the user's default browser
+                        if let Err(e) = open::that(download_url) {
+                            eprintln!("Failed to open browser link: {:?}", e);
+                        }
+                    }
                 }
             }
         },
