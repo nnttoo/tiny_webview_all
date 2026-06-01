@@ -1,5 +1,5 @@
 import path from "node:path";
-import { openWebview, startWebIpcServer, WebControl, WebResponse } from "webview_ipc"
+import { openWebview, selectFile, startWebIpcServer, WebControl, WebResponse } from "webview_ipc"
 
 let ipcpath = process.env.IPCNAME ? process.env.IPCNAME : "err";
 
@@ -26,7 +26,7 @@ async function run() {
                     body: Buffer.from(msg),
                     content_type: "application/json"
                 }
-            } 
+            }
             let json = req.bodyJson<FParam>();
 
             if (json.cmd == null) return null;
@@ -40,26 +40,33 @@ async function run() {
             if (json.cmd == "move") {
                 let arg = json.params as { top: number, left: number };
                 web.move(arg.left, arg.top);
-               
+
                 return simple_result("ok");
             }
 
             if (json.cmd == "resize") {
                 let arg = json.params as { width: number, height: number };
-                web.resize(arg.width,arg.height);
+                web.resize(arg.width, arg.height);
                 return simple_result("ok");
 
             }
 
-            if (json.cmd == "minimize") { 
+            if (json.cmd == "minimize") {
                 web.minimize(json.params as boolean);
                 return simple_result("ok");
 
             }
 
-            if (json.cmd == "maximize") { 
+            if (json.cmd == "maximize") {
                 web.maximize(json.params as boolean);
                 return simple_result("ok");
+
+            }
+
+            if (json.cmd == "select_file") {
+                 
+                let file = await selectFile(json.params);
+                return simple_result(file.message);
 
             }
 

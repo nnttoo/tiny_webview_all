@@ -3,7 +3,7 @@
 use crate::{
     exec_comand::exec_command,
     ipc_server::IpcRoute,
-    main_routefun::{set_appctx_static, web_close, web_maximize, web_minimize, web_move, web_open, web_resize},
+    main_routefun::{select_file, set_appctx_static, web_close, web_maximize, web_minimize, web_move, web_open, web_resize},
     start_event_loop::create_event_loop,
 };
 
@@ -33,7 +33,8 @@ async fn main() {
         .add_route("move", web_move)
         .add_route("resize", web_resize)
         .add_route("minimize", web_minimize)
-        .add_route("maximize", web_maximize);
+        .add_route("maximize", web_maximize)
+        .add_route("select_file", select_file);
 
     ipcroute.create_server(app_ctx.clone());
     tokio::spawn(exec_command(app_ctx));

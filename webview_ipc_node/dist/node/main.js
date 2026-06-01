@@ -17,3 +17,4 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./util/utils"), exports);
 __exportStar(require("./webview_open"), exports);
 __exportStar(require("./ipc_server_web"), exports);
+__exportStar(require("./select_file"), exports);

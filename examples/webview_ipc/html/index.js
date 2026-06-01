@@ -79,8 +79,16 @@ function intButton() {
     }
     btn("#openfdialog").onclick = async () => {
         let apiresult = await reqApi({
-            cmd: "openfile",
-            params: true
+            cmd: "select_file",
+            params: {
+                root_dir: "D:\\",
+                file_types: [
+                    {
+                        ext: ['md', "txt", "zip"],
+                        file_name: "Text File"
+                    }
+                ],
+            }
         });
 
         ipt("#ipt_dialog").value = apiresult;

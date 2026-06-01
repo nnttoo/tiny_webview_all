@@ -1,5 +1,6 @@
 use std::sync::OnceLock;
 
+use rfd::FileDialog;
 use serde::Deserialize;
 use tao::event_loop::EventLoopWindowTarget;
 use wry::dpi::{LogicalPosition, LogicalSize};
@@ -78,7 +79,7 @@ pub async fn web_move(msg: CmdMessage) -> CmdMessage {
 
         uiitem
             .window
-            .set_outer_position(LogicalPosition::new(move_arg.left,move_arg.top));
+            .set_outer_position(LogicalPosition::new(move_arg.left, move_arg.top));
     });
 
     cmd_msg("")
@@ -103,18 +104,17 @@ pub async fn web_resize(msg: CmdMessage) -> CmdMessage {
 
     ctx.call_ui_fun(move |_, ui_controller| {
         let Ok(uiitem) = ui_controller.get_window_byid(resize_arg.win_id) else {
-
             println!("cant get window");
             return;
         };
 
-        uiitem.window.set_inner_size(LogicalSize::new(resize_arg.width,resize_arg.height)); 
+        uiitem
+            .window
+            .set_inner_size(LogicalSize::new(resize_arg.width, resize_arg.height));
     });
 
     cmd_msg("ok")
 }
-
-
 
 pub async fn web_minimize(msg: CmdMessage) -> CmdMessage {
     let Some(ctx) = GLOBAL_CTX.get() else {
@@ -123,29 +123,25 @@ pub async fn web_minimize(msg: CmdMessage) -> CmdMessage {
 
     #[derive(Deserialize)]
     struct Arg {
-        win_id: u32, 
-        minimize : bool
+        win_id: u32,
+        minimize: bool,
     }
 
     let Ok(arg) = serde_json::from_str::<Arg>(&msg.message) else {
-
         return cmd_msg("json parse error");
     };
 
     ctx.call_ui_fun(move |_, ui_controller| {
         let Ok(uiitem) = ui_controller.get_window_byid(arg.win_id) else {
-
             println!("cant get window");
             return;
         };
 
-        uiitem.window.set_minimized(arg.minimize); 
+        uiitem.window.set_minimized(arg.minimize);
     });
-
 
     cmd_msg("ok")
 }
-
 
 pub async fn web_maximize(msg: CmdMessage) -> CmdMessage {
     let Some(ctx) = GLOBAL_CTX.get() else {
@@ -154,25 +150,52 @@ pub async fn web_maximize(msg: CmdMessage) -> CmdMessage {
 
     #[derive(Deserialize)]
     struct Arg {
-        win_id: u32, 
-        maximized : bool
+        win_id: u32,
+        maximized: bool,
     }
 
     let Ok(arg) = serde_json::from_str::<Arg>(&msg.message) else {
-
         return cmd_msg("json parse error");
     };
 
     ctx.call_ui_fun(move |_, ui_controller| {
         let Ok(uiitem) = ui_controller.get_window_byid(arg.win_id) else {
-
             println!("cant get window");
             return;
         };
 
-        uiitem.window.set_maximized(arg.maximized); 
+        uiitem.window.set_maximized(arg.maximized);
     });
 
-
     cmd_msg("ok")
+}
+
+pub async fn select_file(msg: CmdMessage) -> CmdMessage {
+    #[derive(Deserialize, Debug)]
+    pub struct FileType {
+        pub file_name: String,
+        pub ext: Vec<String>,
+    }
+
+    #[derive(Deserialize)]
+    struct Arg {
+        pub root_dir: String,
+        pub file_types: Vec<FileType>,
+    }
+
+    let  Ok(arg) = serde_json::from_str::<Arg>(&msg.message) else {
+        return  cmd_msg("json parse error");
+    };
+
+     let mut file_d = FileDialog::new().set_directory(arg.root_dir);
+
+    for item in arg.file_types {
+        file_d = file_d.add_filter(item.file_name, &item.ext);
+    }
+
+    let Some(file) = file_d.pick_file() else {
+        return cmd_msg("");
+    };
+
+    cmd_msg(&file.to_string_lossy())
 }

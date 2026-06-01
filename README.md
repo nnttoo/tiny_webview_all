@@ -48,8 +48,8 @@ Here is the current development status of the project, ordered from the earliest
 - Add automated build pipelines for Windows, Linux, and macOS
 - Create NPM Package webview_ipc
 - 🕧 Create Window Control IPC
-    - select folder
-    - 🕧 select file
+    - 🕧 select folder
+    - ✅ select file
     - ✅ maximize
     - ✅ minimize
     - ✅ Resize
