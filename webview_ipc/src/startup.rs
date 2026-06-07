@@ -1,11 +1,15 @@
-use std::{fs::exists, path::PathBuf};
+use std::{fs::exists, path::PathBuf, sync::Arc};
 
 use native_dialog::{MessageDialog, MessageType};
 use rmp_serde::encode::write;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
-use crate::{app_ctx::AppMyContextArc, utils_tools::get_exe_folder};
+use crate::{
+    app_ctx::AppMyContextArc,
+    startup_web::{BrowserConfig, BrowserOpener},
+    utils_tools::get_exe_folder,
+};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct WindowJson {
@@ -70,28 +74,39 @@ pub async fn start_by_json(appctx: AppMyContextArc) {
             .set_text(&str)
             .show_alert();
 
-        _ = fs::write(filepath, str).await;
+        _ = fs::write(&filepath, str).await;
         appctx.command_is_finish();
         return;
     } else {
-
-        match fs::read_to_string(filepath).await {
-
-            Ok(filectn)=>{
-                match serde_json::from_str(&filectn) {
-                    Ok(win_json)=>{
-                        window_json = win_json;
-                    },
-
-                    _=>{}
+        match fs::read_to_string(&filepath).await {
+            Ok(filectn) => match serde_json::from_str(&filectn) {
+                Ok(win_json) => {
+                    window_json = win_json;
                 }
+
+                _ => {}
             },
-            _=>{}
+            _ => {}
         }
-         
     }
 
-    
+    let browser_opener = BrowserOpener {
+        config: BrowserConfig {
+            height: window_json.height,
+            title: window_json.title,
+            ipc_server: "".into(),
+            is_always_ontop: window_json.is_always_ontop,
+            is_debug: window_json.is_debug,
+            is_frameless: window_json.is_frameless,
+            is_fullscreen: window_json.is_fullscreen,
+            is_maximize: window_json.is_maximize,
+            is_resizable: window_json.is_resizable,
+            url: "myapp://localhost/index.html".into(),
+            width: window_json.width,
+            ipc_public_folder: filepath.join(window_json.public_folder),
+        },
+        ctx: appctx,
+    }.into_arc(); 
 
-    
+    browser_opener.open_web();
 }

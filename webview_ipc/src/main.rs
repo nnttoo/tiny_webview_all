@@ -1,35 +1,38 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::time::Duration;
+use std::{  time::Duration};
 
 use tokio::time::sleep;
 
-use crate::{
-    exec_comand::exec_command,
-    ipc_server::IpcRoute,
-    main_routefun::{select_file, select_folder, set_appctx_static, web_close, web_maximize, web_minimize, web_move, web_open, web_resize},
-    start_event_loop::create_event_loop, startup::start_by_json,
-};
+use crate::{start_event_loop::create_event_loop, startup::start_by_json};
 
 mod app_ctx;
-mod exec_comand;
-mod ipc_send;
-mod ipc_server;
-mod ipc_server_handler;
-mod main_routefun;
-mod open_web;
-mod open_web_icon;
-mod open_web_ipc;
 mod start_event_loop;
 mod start_event_loop_ui;
-mod utils_tools;
 mod startup;
+mod startup_web;
+mod startup_web_icon;
+mod utils_tools;
 
 #[tokio::main]
 async fn main() {
     let (app_ctx, mytread) = create_event_loop();
     start_by_json(app_ctx.clone()).await;
 
+    tokio::spawn({
+        let ctx = app_ctx.clone();
+        async move {
+            loop {
+                
+                sleep(Duration::from_millis(1000)).await;
+                if ctx.is_exit.load(std::sync::atomic::Ordering::Relaxed) {
+                    ctx.command_is_finish();
+                    break ;
+                }
+            }
+        }
+    });
+ 
 
     // set_appctx_static(app_ctx.clone());
 
@@ -45,8 +48,8 @@ async fn main() {
 
     // ipcroute.create_server(app_ctx.clone());
     // tokio::spawn(exec_command(app_ctx.clone()));
- 
-    // tokio::spawn(async move {   
+
+    // tokio::spawn(async move {
     //     sleep(Duration::from_millis(10000)).await;
 
     //     let ctx_clone = app_ctx.clone();

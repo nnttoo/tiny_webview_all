@@ -1,24 +1,22 @@
 use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
+    Arc, RwLock, atomic::{AtomicBool, Ordering}
 };
 
 use tao::event_loop::{EventLoopProxy, EventLoopWindowTarget};
 
-use crate::{ipc_server_handler::create_ipc_name, start_event_loop::CustomEvent, start_event_loop_ui::UiController};
+use crate::{start_event_loop::CustomEvent, start_event_loop_ui::UiController};
 
 //#[derive(Clone)]
 pub struct AppMyContext {
-    pub even_loop_poxy: EventLoopProxy<CustomEvent>,
-    pub ipc_name: String,
-    pub is_exit: Arc<AtomicBool>,
+    pub even_loop_poxy: EventLoopProxy<CustomEvent>, 
+    pub is_exit: Arc<AtomicBool>, 
 }
 
 impl AppMyContext {
     pub fn new(event_loop: EventLoopProxy<CustomEvent>) -> AppMyContextArc {
         Arc::new(Self {
             even_loop_poxy: event_loop,
-            ipc_name: create_ipc_name(),
+            //ipc_name: create_ipc_name(),
             is_exit: Arc::new(AtomicBool::new(false)),
         })
     }
