@@ -29,18 +29,20 @@ impl ResponseTools {
     }
 
     pub fn response_file(&self) -> Result<Response<Vec<u8>>> {
-        let mut uri = self.req.uri().path();
+        let file_path = {
+            let mut path = self.req.uri().path();
+            if path.starts_with('/') {
+                path = match path.strip_prefix("/") {
+                    Some(u) => u,
+                    _ => path,
+                };
+            }
 
-        if  uri.starts_with('/')  {
-            uri = match uri.strip_prefix("/"){
-                Some(u)=>u,
-                _=>uri
-            };
-        }
+            self.public_path.join(path.to_string())
+        };
 
-        let content_type = get_content_type(uri);
+        let content_type = get_content_type(&file_path);
 
-        let file_path = self.public_path.join(uri.to_string());
         if !simple_file_exist(&file_path) {
             println!("ini file pathnya {}", (&file_path).to_string_lossy());
             return Err(Error::msg("file not found"));
@@ -67,7 +69,7 @@ impl ResponseTools {
     }
 }
 
-fn get_content_type(uri: &str) -> &'static str {
+fn get_content_type(uri: &PathBuf) -> &'static str {
     // Ambil ekstensi file dari URI, jika tidak ada/gagal, default ke ""
     let extension = Path::new(uri)
         .extension()
