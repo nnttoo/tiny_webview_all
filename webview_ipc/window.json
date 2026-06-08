@@ -8,5 +8,5 @@
   "is_debug": true,
   "is_always_ontop": false,
   "is_fullscreen": false,
-  "public_folder": "./public"
+  "public_folder": "../examples/webview_ts_dev/html"
 }

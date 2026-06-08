@@ -138,11 +138,14 @@ impl WebAppCtx {
         let self_clone = self.clone();
 
         Box::new(move |_id, _request, responder| { 
-  
-            tokio::spawn(async move { 
+            
+            let public_path = self_clone.config.ipc_public_folder.clone();
+
+            tokio::spawn(async move {  
 
                 ResponseTools{
-                    req : _request
+                    req : _request,
+                    public_path : public_path
                 }.call_response(responder).await;
 
             });

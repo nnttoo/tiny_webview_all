@@ -101,7 +101,7 @@ pub async fn start_by_json(appctx: AppMyContextArc) {
             is_resizable: window_json.is_resizable,
             url: "myapp://localhost/index.html".into(),
             width: window_json.width,
-            ipc_public_folder: filepath.join(window_json.public_folder),
+            ipc_public_folder: filepath.parent().unwrap().join(window_json.public_folder),
         }),
         ctx: appctx,
     }.into_arc(); 
