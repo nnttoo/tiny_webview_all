@@ -7,7 +7,7 @@ use tao::{
 use wry::{PermissionResponse, RequestAsyncResponder, WebViewBuilder, WebViewId, http::Request};
 
 use crate::{
-    app_ctx::AppMyContextArc, start_event_loop::CustomEvent, start_event_loop_ui::UiController, utils_tools::check_current_thread, web_startup::icon::load_dynamic_png 
+    app_ctx::AppMyContextArc, start_event_loop::CustomEvent, start_event_loop_ui::UiController, utils_tools::check_current_thread, web_startup::{icon::load_dynamic_png, response_tools::ResponseTools} 
 };
 
 #[derive(Clone)]
@@ -37,6 +37,13 @@ impl WebAppCtx {
         Arc::new(self)
     }
 
+    ///
+    /// open web on ui thread
+    ///
+    /// because this fn will call from anothre thread,
+    /// we need to using Arc
+    /// so we can clone the Arc easly
+    ///
     pub fn open_web(self : Arc<Self>) {
         let app_ctx = &self.ctx; 
  
@@ -55,13 +62,10 @@ impl WebAppCtx {
         println!("halo ini test aja dulu {}",isuithread);
     }
 
+
     ///
-    /// open web on ui thread
-    ///
-    /// because this fn will call from anothre thread,
-    /// we need to using Arc
-    /// so we can clone the Arc easly
-    ///
+    /// Call from Ui Thread
+    /// 
     fn open_web_ui(
         &self,
         elwt: &EventLoopWindowTarget<CustomEvent>,
@@ -122,6 +126,11 @@ impl WebAppCtx {
         Ok(winid)
     }
  
+
+    ///
+    /// Listener for with_asynchronous_custom_protocol
+    /// 
+    
     fn custom_protocol(
         &self ,
     ) -> Box<dyn Fn(WebViewId, Request<Vec<u8>>, RequestAsyncResponder)> {
@@ -129,18 +138,13 @@ impl WebAppCtx {
         let self_clone = self.clone();
 
         Box::new(move |_id, _request, responder| { 
+  
+            tokio::spawn(async move { 
 
-            let response = wry::http::Response::builder()
-                .body(b"test aja dulu".to_vec())
-                .unwrap();
+                ResponseTools{
+                    req : _request
+                }.call_response(responder).await;
 
-            check_current_thread("custom_protocol"); 
-
-            responder.respond(response);
-
-            let self_clone = self_clone.clone();
-            tokio::spawn(async move {
-                self_clone.test();
             });
         })
     }
