@@ -4,14 +4,12 @@ use std::{  time::Duration};
 
 use tokio::time::sleep;
 
-use crate::{start_event_loop::create_event_loop, startup::start_by_json};
+use crate::{start_event_loop::create_event_loop, web_startup::start_by_json };
 
 mod app_ctx;
 mod start_event_loop;
-mod start_event_loop_ui;
-mod startup;
-mod startup_web;
-mod startup_web_icon;
+mod start_event_loop_ui; 
+mod web_startup;
 mod utils_tools;
 
 #[tokio::main]

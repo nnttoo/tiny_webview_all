@@ -12,3 +12,10 @@ pub fn get_exe_folder() -> PathBuf {
 
     path_def
 }
+
+pub fn check_current_thread(context: &str) {
+    let current_thread = std::thread::current();
+    let thread_name = current_thread.name().unwrap_or("unknown-thread");
+    
+    println!("[{}] Running on thread: {}", context, thread_name);
+}

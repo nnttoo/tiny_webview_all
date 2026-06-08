@@ -7,8 +7,7 @@ use tao::{
 use wry::{PermissionResponse, RequestAsyncResponder, WebViewBuilder, WebViewId, http::Request};
 
 use crate::{
-    app_ctx::AppMyContextArc, start_event_loop::CustomEvent, start_event_loop_ui::UiController,
-    startup_web_icon::load_dynamic_png,
+    app_ctx::AppMyContextArc, start_event_loop::CustomEvent, start_event_loop_ui::UiController, utils_tools::check_current_thread, web_startup::icon::load_dynamic_png 
 };
 
 #[derive(Clone)]
@@ -27,32 +26,50 @@ pub struct BrowserConfig {
     pub ipc_public_folder: PathBuf,
 }
 
-pub struct BrowserOpener {
-    pub config: BrowserConfig,
+#[derive(Clone)] 
+pub struct WebAppCtx {
+    pub config: Arc<BrowserConfig>,
     pub ctx: AppMyContextArc,
 }
 
-impl BrowserOpener {
-    pub fn into_arc(self) -> Arc<BrowserOpener> {
+impl WebAppCtx {
+    pub fn into_arc(self) -> Arc<WebAppCtx> {
         Arc::new(self)
     }
 
-    pub fn open_web(self: Arc<Self>) {
-        let app_ctx = &self.ctx;
-        let config = self.config.clone();
+    pub fn open_web(self : Arc<Self>) {
+        let app_ctx = &self.ctx; 
+ 
+        
 
-        let opener_arc = self.clone();
+        let opener_arc =  self.clone();
         app_ctx.call_ui_fun(move |elwt, ui_controller| {
-            _ = opener_arc.open_web_ui(elwt, ui_controller, config); 
+            _ = opener_arc.open_web_ui(elwt, ui_controller);
         });
     }
 
+    pub fn test(&self){
+
+        let isuithread = self.ctx.is_ui_thread();
+
+        println!("halo ini test aja dulu {}",isuithread);
+    }
+
+    ///
+    /// open web on ui thread
+    ///
+    /// because this fn will call from anothre thread,
+    /// we need to using Arc
+    /// so we can clone the Arc easly
+    ///
     fn open_web_ui(
-        self: Arc<Self>,
+        &self,
         elwt: &EventLoopWindowTarget<CustomEvent>,
-        ui_controller: &mut UiController,
-        config: BrowserConfig,
+        ui_controller: &mut UiController 
     ) -> Result<u32, Box<dyn std::error::Error>> {
+
+        let config = self.config.clone();
+
         let mut builder = WindowBuilder::new()
             .with_title(config.title.to_string())
             .with_inner_size(tao::dpi::PhysicalSize::new(config.width, config.height))
@@ -104,16 +121,27 @@ impl BrowserOpener {
         let winid = ui_controller.add(window, mywebview);
         Ok(winid)
     }
-
+ 
     fn custom_protocol(
-        self: Arc<Self>,
+        &self ,
     ) -> Box<dyn Fn(WebViewId, Request<Vec<u8>>, RequestAsyncResponder)> {
-        Box::new(move |_id, _request, responder| {
+
+        let self_clone = self.clone();
+
+        Box::new(move |_id, _request, responder| { 
+
             let response = wry::http::Response::builder()
                 .body(b"test aja dulu".to_vec())
                 .unwrap();
 
+            check_current_thread("custom_protocol"); 
+
             responder.respond(response);
+
+            let self_clone = self_clone.clone();
+            tokio::spawn(async move {
+                self_clone.test();
+            });
         })
     }
 }

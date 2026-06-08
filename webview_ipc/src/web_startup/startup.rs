@@ -1,14 +1,12 @@
 use std::{fs::exists, path::PathBuf, sync::Arc};
 
-use native_dialog::{MessageDialog, MessageType};
-use rmp_serde::encode::write;
+use native_dialog::{MessageDialog, MessageType}; 
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
 use crate::{
-    app_ctx::AppMyContextArc,
-    startup_web::{BrowserConfig, BrowserOpener},
-    utils_tools::get_exe_folder,
+    app_ctx::AppMyContextArc, 
+    utils_tools::get_exe_folder, web_startup::web::{BrowserConfig, WebAppCtx},
 };
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -90,8 +88,8 @@ pub async fn start_by_json(appctx: AppMyContextArc) {
         }
     }
 
-    let browser_opener = BrowserOpener {
-        config: BrowserConfig {
+    let browser_opener = WebAppCtx {
+        config: Arc::new(BrowserConfig {
             height: window_json.height,
             title: window_json.title,
             ipc_server: "".into(),
@@ -104,7 +102,7 @@ pub async fn start_by_json(appctx: AppMyContextArc) {
             url: "myapp://localhost/index.html".into(),
             width: window_json.width,
             ipc_public_folder: filepath.join(window_json.public_folder),
-        },
+        }),
         ctx: appctx,
     }.into_arc(); 
 

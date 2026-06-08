@@ -1,4 +1,4 @@
-use std::sync::mpsc;
+use std::{sync::mpsc, thread};
 
 use tao::{
     event::{Event, WindowEvent},
@@ -27,7 +27,9 @@ pub fn create_event_loop() -> (AppMyContextArc, JoinHandle<()>) {
     let (tx, rx) = mpsc::channel::<AppMyContextArc>();
 
     let thread_handle = tokio::task::spawn_blocking(move || {
-        let mut builder = EventLoopBuilder::<CustomEvent>::with_user_event();
+        let mut builder = EventLoopBuilder::<CustomEvent>::with_user_event(); 
+
+        let thread_id =   thread::current().id();
 
         #[cfg(target_os = "windows")]
         {
@@ -36,7 +38,7 @@ pub fn create_event_loop() -> (AppMyContextArc, JoinHandle<()>) {
 
         let event_loop = builder.build();
 
-        let my_app_context = AppMyContext::new(event_loop.create_proxy());
+        let my_app_context = AppMyContext::new(event_loop.create_proxy(),thread_id);
         _ = tx.send(my_app_context.clone());
 
         let mut ui_controller = UiController::new(my_app_context.clone());
