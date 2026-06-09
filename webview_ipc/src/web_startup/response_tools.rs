@@ -1,9 +1,10 @@
 use std::{
-    fs,
-    path::{Path, PathBuf},
+    fs, ops::Add, path::{Path, PathBuf}
 };
 
 use anyhow::{Error, Result};
+use path_clean::PathClean;
+use path_slash::{PathBufExt, PathExt};
 use wry::{
     RequestAsyncResponder,
     http::{HeaderName, Request, Response, header},
@@ -16,10 +17,22 @@ use crate::utils_tools::simple_file_exist;
 /// This class will be executed in tokio::spawn inside the custom_protocol fn.
 pub struct ResponseTools {
     pub req: Request<Vec<u8>>,
+    req_path : String,
     pub public_path: PathBuf,
 }
 
 impl ResponseTools {
+    pub fn new(req : Request<Vec<u8>>, public_path : PathBuf)->Self{
+
+        let req_path = (&req).uri().path().to_string();
+
+        Self{
+            req : req,
+            public_path : public_path,
+            req_path,
+        }
+    }
+
     fn create_response(&self, mybyte: &[u8]) -> Response<Vec<u8>> {
         let response = wry::http::Response::builder()
             .body(mybyte.to_vec())
@@ -29,22 +42,18 @@ impl ResponseTools {
     }
 
     pub fn response_file(&self) -> Result<Response<Vec<u8>>> {
-        let file_path = {
-            let mut path = self.req.uri().path();
-            if path.starts_with('/') {
-                path = match path.strip_prefix("/") {
-                    Some(u) => u,
-                    _ => path,
-                };
-            }
-
-            self.public_path.join(path.to_string())
+        let file_path : PathBuf = {
+            
+            let relative_path = ".".to_string().add(&self.req_path); 
+            let public_path = self.public_path.join(relative_path);
+            
+            public_path.clean()
         };
 
         let content_type = get_content_type(&file_path);
 
         if !simple_file_exist(&file_path) {
-            println!("ini file pathnya {}", (&file_path).to_string_lossy());
+            println!("ini file pathnya {}", (&file_path).to_slash_lossy().into_owned());
             return Err(Error::msg("file not found"));
         }
 

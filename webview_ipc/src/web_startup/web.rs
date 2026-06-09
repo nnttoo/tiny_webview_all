@@ -143,10 +143,7 @@ impl WebAppCtx {
 
             tokio::spawn(async move {  
 
-                ResponseTools{
-                    req : _request,
-                    public_path : public_path
-                }.call_response(responder).await;
+                ResponseTools::new(_request, public_path).call_response(responder).await; 
 
             });
         })
