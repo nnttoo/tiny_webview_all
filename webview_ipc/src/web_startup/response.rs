@@ -10,15 +10,16 @@ use wry::{
     http::{HeaderName, Request, Response, header},
 };
 
-use crate::utils_tools::simple_file_exist;
+use crate::{utils_tools::simple_file_exist };
 
 // Haryanto 08 June 2026
 /// ResponseTools is a struct to handle web responses.
 /// This class will be executed in tokio::spawn inside the custom_protocol fn.
 pub struct ResponseTools {
     pub req: Request<Vec<u8>>,
-    req_path : String,
+    pub req_path : String,
     pub public_path: PathBuf,
+    
 }
 
 impl ResponseTools {
@@ -67,6 +68,13 @@ impl ResponseTools {
     }
 
     pub async fn call_response(&self, res: RequestAsyncResponder) {
+        if self.req_path.starts_with("/uiapi/"){
+
+            let uiapiresponse = self.ui_api().await;
+            res.respond(self.create_response(uiapiresponse));
+            return;
+        }
+
         match self.response_file() {
             Ok(r) => {
                 res.respond(r);

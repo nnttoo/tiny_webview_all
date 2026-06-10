@@ -1,13 +1,20 @@
-use std::{fs::exists, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, fs::exists, path::PathBuf, sync::Arc};
 
-use native_dialog::{MessageDialog, MessageType}; 
+use native_dialog::{MessageDialog, MessageType};
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
 use crate::{
-    app_ctx::AppMyContextArc, 
-    utils_tools::get_exe_folder, web_startup::web::{BrowserConfig, WebAppCtx},
+    app_ctx::AppMyContextArc,
+    utils_tools::get_exe_folder,
+    web_startup::{response_command::CommandManager, web::{BrowserConfig, WebAppCtx}},
 };
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct  CommandItem{
+    pub executable: String,
+    pub args: Vec<String>,
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct WindowJson {
@@ -22,6 +29,8 @@ pub struct WindowJson {
     pub is_fullscreen: bool,
 
     pub public_folder: String,
+
+    pub list_command: HashMap<String,CommandItem>,
 }
 
 impl WindowJson {
@@ -38,6 +47,7 @@ impl WindowJson {
             is_resizable: true,
 
             public_folder: "./public".into(),
+            list_command: HashMap::new(),
         }
     }
 }
@@ -88,23 +98,19 @@ pub async fn start_by_json(appctx: AppMyContextArc) {
         }
     }
 
+    let cprotocol = "myapp";
+
     let browser_opener = WebAppCtx {
         config: Arc::new(BrowserConfig {
-            height: window_json.height,
-            title: window_json.title,
-            ipc_server: "".into(),
-            is_always_ontop: window_json.is_always_ontop,
-            is_debug: window_json.is_debug,
-            is_frameless: window_json.is_frameless,
-            is_fullscreen: window_json.is_fullscreen,
-            is_maximize: window_json.is_maximize,
-            is_resizable: window_json.is_resizable,
-            url: "myapp://localhost/index.html".into(),
-            width: window_json.width,
-            ipc_public_folder: filepath.parent().unwrap().join(window_json.public_folder),
+            win_json: Arc::new(window_json),
+            uri: format!("{}://localhost/index.html",&cprotocol),
+            current_folder: filepath,
+            custom_protocol : cprotocol.to_string(),
         }),
         ctx: appctx,
-    }.into_arc(); 
+        command_mager : Arc::new(CommandManager::new()),
+    }
+    .into_arc();
 
     browser_opener.open_web();
 }
