@@ -136,15 +136,17 @@ impl WebAppCtx {
         &self ,
     ) -> Box<dyn Fn(WebViewId, Request<Vec<u8>>, RequestAsyncResponder)> {
 
-        let self_clone = self.clone();
+        let self_clone = Arc::new(self.clone());
 
         Box::new(move |_id, _request, responder| { 
-            
-            let public_path = self_clone.config.get_public_folder();
-
+            let self_clone  = self_clone.clone();
             tokio::spawn(async move {  
 
-                ResponseTools::new(_request, public_path).call_response(responder).await; 
+                ResponseTools::new(
+                    _request, 
+                    self_clone
+                
+                ).call_response(responder).await; 
 
             });
         })

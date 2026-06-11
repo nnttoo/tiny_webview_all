@@ -8,7 +8,9 @@ impl ResponseTools {
     }
 
     fn call_command(&self)->&[u8]{
+        let bodystr  = self.get_body_str().to_string();
         
+
 
         b""
     }
