@@ -8,6 +8,8 @@ impl ResponseTools {
     }
 
     fn call_command(&self)->&[u8]{
+        
+
         b""
     }
 
