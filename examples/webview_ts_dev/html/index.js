@@ -105,3 +105,5 @@ function intButton() {
 }
 
 intButton();
+
+console.log(uiApi);

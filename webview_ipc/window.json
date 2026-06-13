@@ -21,7 +21,7 @@
       "executable": "cmd.exe",
       "args": [
         "/C",
-        "ping google.com -t"
+        "ping google.com -n 5"
       ]
     }
   }

@@ -56,7 +56,7 @@ impl CommandChild {
         // Haryanto 13/06/2026
         // create reciver for byte that whil use when
         // uiapi call  command_read
-        let (tx_uiapi, rx_uiapi) = mpsc::sync_channel::<Vec<u8>>(3);
+        let (tx_uiapi, rx_uiapi) = mpsc::sync_channel::<Vec<u8>>(100);
         self.cmd_reader = Some(rx_uiapi); // save the reciver
 
         self.keep_alive = Some(tx);
@@ -72,10 +72,10 @@ impl CommandChild {
 
                 match stdout_reader.read(&mut buffer).await {
                     Ok(0) => {
-                        println!("Stream reached EOF (Process ended).");
+                        _= tx_uiapi.send(b"---ENDOFSTREAM---".to_vec());
                         break;
                     }
-                    Ok(n) => {
+                    Ok(n) => { 
                         let raw_bytes = &buffer[..n];
                         _ = tx_uiapi.send(raw_bytes.to_vec());
                     }
@@ -161,6 +161,16 @@ impl CommandManager {
         Ok(child.clone())
     }
 
+    fn remove_command(&self, threadid : u32)->Result<(), BoxError>{
+        let Ok(mut hashmap_lock) = self.map_command.try_lock() else {
+            return Err(Box::from("err remove command"));
+        };
+ 
+        hashmap_lock.remove(&threadid); 
+
+        Ok(())
+    }
+
     pub fn stop_command(&self, proc_id: u32) -> Result<&str, BoxError> {
         let child = self.get_child(proc_id)?;
 
@@ -169,6 +179,7 @@ impl CommandManager {
         };
 
         child_lock.stop_thread();
+        self.remove_command(proc_id)?;
         Ok("thread stop success")
     }
 
