@@ -6,6 +6,7 @@ use std::{
 };
 
 use anyhow::{Error, Result};
+use image::EncodableLayout;
 use path_clean::PathClean;
 use path_slash::{PathBufExt, PathExt};
 use tokio::{io::join, join};
@@ -77,7 +78,7 @@ impl ResponseTools {
     pub async fn call_response(&self, res: RequestAsyncResponder) {
         if self.req_path.starts_with("/uiapi/") {
             let uiapiresponse = self.ui_api().await;
-            res.respond(self.create_response(uiapiresponse));
+            res.respond(self.create_response(uiapiresponse.as_bytes()));
             return;
         }
 
