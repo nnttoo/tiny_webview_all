@@ -13,18 +13,23 @@ use tokio::{
     process::Command,
 };
 
+use crate::web_startup::web::WebAppCtx;
+pub static STOP_MSG_DELIMITER : &[u8] = b"---ENDOFSTREAM---";
+
 pub struct CommandChild {
     pub cmd_id: u32,
     pub keep_alive: Option<SyncSender<bool>>,
     pub cmd_reader: Option<Receiver<Vec<u8>>>,
+    pub web_ctx : Arc<WebAppCtx> 
 }
 
 impl CommandChild {
-    pub fn new() -> Self {
+    pub fn new(web_ctx : Arc<WebAppCtx> ) -> Self {
         Self {
             cmd_id: 0,
             keep_alive: None,
             cmd_reader: None,
+            web_ctx : web_ctx,
         }
     }
 
@@ -59,7 +64,9 @@ impl CommandChild {
         let (tx_uiapi, rx_uiapi) = mpsc::sync_channel::<Vec<u8>>(100);
         self.cmd_reader = Some(rx_uiapi); // save the reciver
 
-        self.keep_alive = Some(tx);
+        self.keep_alive = Some(tx); 
+
+        let command_manager_clone = self.web_ctx.command_mager.clone();
 
         tokio::spawn(async move {
             let mut buffer = [0u8; 1024];
@@ -72,7 +79,7 @@ impl CommandChild {
 
                 match stdout_reader.read(&mut buffer).await {
                     Ok(0) => {
-                        _= tx_uiapi.send(b"---ENDOFSTREAM---".to_vec());
+                        _= tx_uiapi.send(STOP_MSG_DELIMITER.to_vec());
                         break;
                     }
                     Ok(n) => { 
@@ -87,6 +94,7 @@ impl CommandChild {
             }
 
             println!("thread END");
+            _=command_manager_clone.remove_command(child_id);
         });
 
         Ok(())
@@ -118,7 +126,6 @@ impl CommandChild {
 type MutextChildArc = Arc<Mutex<CommandChild>>;
 type BoxError = Box<dyn Error>;
 
-#[derive(Clone)]
 pub struct CommandManager {
     pub map_command: Arc<Mutex<HashMap<u32, MutextChildArc>>>,
 }
@@ -130,12 +137,13 @@ impl CommandManager {
         }
     }
 
-    pub fn create_command(&self, exepath: &str, args: Vec<String>) -> Result<u32, &str> {
+    pub fn create_command(&self, exepath: &str, args: Vec<String>, web_ctx : Arc<WebAppCtx> ) -> Result<u32, &str> { 
+
         let Ok(mut lock) = self.map_command.try_lock() else {
             return Err("cant lock hashmap");
         };
 
-        let mut mycmd = CommandChild::new();
+        let mut mycmd = CommandChild::new(web_ctx);
         let Ok(_) = mycmd.exec(exepath, args) else {
             return Err("cant exec");
         };
@@ -167,6 +175,7 @@ impl CommandManager {
         };
  
         hashmap_lock.remove(&threadid); 
+        println!("command is removed {}", threadid );
 
         Ok(())
     }

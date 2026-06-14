@@ -81,7 +81,7 @@ const uiApi = {
                     let arr = new Uint8Array(t);
 
                     if (uiApi.isDelimiterPresent(arr)) { 
-                        stopCommand();
+                        keepLive = false;
                         return;
                     }
 

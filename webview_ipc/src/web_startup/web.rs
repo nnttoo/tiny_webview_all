@@ -31,8 +31,7 @@ impl  BrowserConfig {
 }
 
 
-
-#[derive(Clone)] 
+ 
 pub struct WebAppCtx {
     pub config: Arc<BrowserConfig>,
     pub ctx: AppMyContextArc,
@@ -66,7 +65,7 @@ impl WebAppCtx {
     /// Call from Ui Thread
     /// 
     fn open_web_ui(
-        &self,
+        self : Arc<Self>,
         elwt: &EventLoopWindowTarget<CustomEvent>,
         ui_controller: &mut UiController 
     ) -> Result<u32, Box<dyn std::error::Error>> {
@@ -98,7 +97,7 @@ impl WebAppCtx {
                 println!("Otomatis mengizinkan: {:?}", kind);
                 PermissionResponse::Allow
             })
-            .with_asynchronous_custom_protocol(custom_protocol.to_string(), self.custom_protocol())
+            .with_asynchronous_custom_protocol(custom_protocol.to_string(), self.clone().custom_protocol())
             .with_url(url.to_string());
 
         #[cfg(target_os = "windows")]
@@ -133,10 +132,9 @@ impl WebAppCtx {
     /// 
     
     fn custom_protocol(
-        &self ,
-    ) -> Box<dyn Fn(WebViewId, Request<Vec<u8>>, RequestAsyncResponder)> {
-
-        let self_clone = Arc::new(self.clone());
+        self :Arc<Self>,
+    ) -> Box<dyn Fn(WebViewId, Request<Vec<u8>>, RequestAsyncResponder)> { 
+        let self_clone =  self.clone();
 
         Box::new(move |_id, _request, responder| { 
             let self_clone  = self_clone.clone();

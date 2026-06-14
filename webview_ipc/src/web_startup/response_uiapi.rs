@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::web_startup::response::ResponseTools;
+use crate::web_startup::{response::ResponseTools, response_command::STOP_MSG_DELIMITER};
 
 impl ResponseTools {
     fn get_body_str(&self) -> Cow<'_, str> {
@@ -18,7 +18,7 @@ impl ResponseTools {
         };
 
         let cmd_manager = &self.web_ctx.command_mager; 
-        match cmd_manager.create_command(&command.executable, (&command.args).clone()){
+        match cmd_manager.create_command(&command.executable, (&command.args).clone(),self.web_ctx.clone()){
             Err(eer)=>{ 
                  format!("error command {}", eer).into_bytes() 
             },
@@ -52,7 +52,7 @@ impl ResponseTools {
         };
 
         let Ok(data) = self.web_ctx.command_mager.read_command(thread_id) else {
-            return  b"error read data".to_vec();
+            return  STOP_MSG_DELIMITER.to_vec();
         };
         
         data
