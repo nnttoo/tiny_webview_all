@@ -13,6 +13,5 @@ export interface UiAPi{
     callUiApiBuffer(path : string, param : any) : Promise<ArrayBuffer>;
     callUiApi(path : string, param : any) : Promise<string>;
     uiLog(str : string);
-    callCommand(cmdname : string): Promise<callCommandResult>;
-    isDelimiterPresent(arr : Uint8Array):boolean;
+    callCommand(cmdname : string): Promise<callCommandResult>; 
 }

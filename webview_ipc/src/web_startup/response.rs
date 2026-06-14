@@ -5,17 +5,18 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{Error, Result};
 use image::EncodableLayout;
 use path_clean::PathClean;
-use path_slash::{PathBufExt, PathExt};
-use tokio::{io::join, join};
+use path_slash::PathBufExt;
 use wry::{
     RequestAsyncResponder,
-    http::{HeaderName, Request, Response, header},
+    http::{Request, Response, StatusCode, header},
 };
 
-use crate::{utils_tools::simple_file_exist, web_startup::web::WebAppCtx};
+use crate::{
+    utils_tools::simple_file_exist,
+    web_startup::{BoxError, web::WebAppCtx},
+};
 
 // Haryanto 08 June 2026
 /// ResponseTools is a struct to handle web responses.
@@ -31,13 +32,13 @@ impl ResponseTools {
     pub fn new(req: Request<Vec<u8>>, web_ctx: Arc<WebAppCtx>) -> Self {
         let req_path = (&req).uri().path().to_string();
 
-        let public_path = web_ctx.config.get_public_folder(); 
+        let public_path = web_ctx.config.get_public_folder();
 
         Self {
             req: req,
             web_ctx: web_ctx,
             req_path,
-            public_path : public_path,
+            public_path: public_path,
         }
     }
 
@@ -49,9 +50,20 @@ impl ResponseTools {
         response
     }
 
-    pub fn response_file(&self) -> Result<Response<Vec<u8>>> {
+    fn create_response_error(&self, err: BoxError, status: StatusCode) -> Response<Vec<u8>> {
+        let err_message = err.to_string(); // Mengambil pesan teks dari Box<dyn Error>
+        let mybyte = err_message.as_bytes();
+
+        let response = wry::http::Response::builder()
+            .status(status)
+            .body(mybyte.to_vec())
+            .unwrap();
+        response
+    }
+
+    pub fn response_file(&self) -> Result<Response<Vec<u8>>, BoxError> {
         let file_path: PathBuf = {
-            let relative_path = ".".to_string().add(&self.req_path); 
+            let relative_path = ".".to_string().add(&self.req_path);
             let filepath = self.public_path.join(relative_path);
             filepath.clean()
         };
@@ -63,7 +75,7 @@ impl ResponseTools {
                 "ini file pathnya {}",
                 (&file_path).to_slash_lossy().into_owned()
             );
-            return Err(Error::msg("file not found"));
+            return Err(Box::from("file not found"));
         }
 
         let ctn = fs::read(file_path)?;
@@ -78,7 +90,15 @@ impl ResponseTools {
     pub async fn call_response(&self, res: RequestAsyncResponder) {
         if self.req_path.starts_with("/uiapi/") {
             let uiapiresponse = self.ui_api().await;
-            res.respond(self.create_response(uiapiresponse.as_bytes()));
+            match uiapiresponse {
+                Ok(b) => {
+                    res.respond(self.create_response(b.as_bytes()));
+                }
+                Err(error) => {
+                    res.respond(self.create_response_error(error, StatusCode::INTERNAL_SERVER_ERROR));
+                }
+            }
+
             return;
         }
 
@@ -87,7 +107,7 @@ impl ResponseTools {
                 res.respond(r);
             }
             Err(e) => {
-                res.respond(self.create_response(e.to_string().as_bytes()));
+                res.respond(self.create_response_error(e, StatusCode::NOT_FOUND));
             }
         }
     }

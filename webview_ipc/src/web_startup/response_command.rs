@@ -1,6 +1,5 @@
 use std::{
-    collections::HashMap,
-    error::Error,
+    collections::HashMap, 
     process::Stdio,
     sync::{
         Arc, Mutex,
@@ -13,8 +12,7 @@ use tokio::{
     process::Command,
 };
 
-use crate::web_startup::web::WebAppCtx;
-pub static STOP_MSG_DELIMITER : &[u8] = b"---ENDOFSTREAM---";
+use crate::web_startup::{BoxError, web::WebAppCtx}; 
 
 pub struct CommandChild {
     pub cmd_id: u32,
@@ -78,8 +76,7 @@ impl CommandChild {
                 }
 
                 match stdout_reader.read(&mut buffer).await {
-                    Ok(0) => {
-                        _= tx_uiapi.send(STOP_MSG_DELIMITER.to_vec());
+                    Ok(0) => { 
                         break;
                     }
                     Ok(n) => { 
@@ -124,7 +121,7 @@ impl CommandChild {
 }
 
 type MutextChildArc = Arc<Mutex<CommandChild>>;
-type BoxError = Box<dyn Error>;
+
 
 pub struct CommandManager {
     pub map_command: Arc<Mutex<HashMap<u32, MutextChildArc>>>,

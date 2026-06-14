@@ -8,12 +8,9 @@ const pathAPi_CommandStop = "command_stop";
 const pathAPi_CommandRead = "command_read";
 const pathAPi_PrintLog = "printlog";
 
-const END_STREAM_SIGNAL = "---ENDOFSTREAM---";
-const delimiterBytes = new TextEncoder().encode(END_STREAM_SIGNAL);
 
 /** @type {import("./uiapi").UiAPi} */
 const uiApi = {
-
 
     uiapi_path_join(str) {
         if (str.startsWith("/")) {
@@ -28,21 +25,16 @@ const uiApi = {
         })
     },
 
-    isDelimiterPresent(arr) {
-        if (arr.length < delimiterBytes.length) return false;
-        for (let i = 0; i < delimiterBytes.length; i++) {
-            if (arr[arr.length - delimiterBytes.length + i] !== delimiterBytes[i]) {
-                return false;
-            }
-        }
-        return true;
-    },
-
     async callUiApiCore(path, param) {
         let res = await fetch(uiApi.uiapi_path_join(path), {
             method: "POST",
             body: param
         });
+
+        if (!res.ok) {
+            let txt = await res.text();
+            throw (txt);
+        }
 
 
         return res;
@@ -77,15 +69,13 @@ const uiApi = {
         return {
             async setOnData(f) {
                 while (keepLive) {
-                    let t = await uiApi.callUiApiBuffer(pathAPi_CommandRead, thread_id);
-                    let arr = new Uint8Array(t);
-
-                    if (uiApi.isDelimiterPresent(arr)) { 
+                    try {
+                        let t = await uiApi.callUiApiBuffer(pathAPi_CommandRead, thread_id);
+                        let arr = new Uint8Array(t);
+                        f(arr);
+                    } catch (error) {
                         keepLive = false;
-                        return;
-                    }
-
-                    f(arr);
+                    } 
                 }
             },
             stopCommand

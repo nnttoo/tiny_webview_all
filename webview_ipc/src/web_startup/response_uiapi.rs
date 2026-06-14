@@ -1,21 +1,20 @@
 use std::borrow::Cow;
 
-use crate::web_startup::{response::ResponseTools};
+use crate::web_startup::{BoxError, response::ResponseTools};
 
 impl ResponseTools {
     pub fn get_body_str(&self) -> Cow<'_, str> {
         String::from_utf8_lossy(self.req.body())
     } 
 
-    fn print_log(&self) -> Vec<u8> {
+    fn print_log(&self) -> Result<Vec<u8>, BoxError> {
         let bd = self.get_body_str();
         println!("webLog : {}", bd);
 
-        b"".to_vec()
+        Ok(b"".to_vec())
     }
 
-    pub async fn ui_api(&self) -> Vec<u8> {
- 
+    pub async fn ui_api(&self) -> Result<Vec<u8>, BoxError>{ 
 
         let uipath_only = self.req_path.split_once("/uiapi/")
         .map(|(_,r)|r) 
@@ -26,7 +25,7 @@ impl ResponseTools {
             "command" => self.command_call(), 
             "command_stop" => self.command_stop(), 
             "command_read" => self.command_read(), 
-            _ => b"uiapi not found".to_vec(),
+            _ => Err(Box::from("ui api not found")),
         }
     }
 }
